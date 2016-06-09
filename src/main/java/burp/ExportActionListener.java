@@ -60,6 +60,7 @@ public class ExportActionListener implements ActionListener{
 				} catch (IOException e1){
 					burpExtender.error("The report could not be sent.");
 				}
+				report.delete();
 			} else {
 				burpExtender.error("The report file could not be created.");
 			}
