@@ -295,7 +295,10 @@ public class BurpExtender implements IBurpExtender, ITab {
 				try {client.close();} catch (IOException e) {}
 			if(rd != null)
 				try {rd.close();} catch (IOException e) {}
-		} 
+		}
+		if(projectArr.length == 0){
+			warn("No projects were found.");
+		}
 		this.projectArr = projectArr;
 		updateProjectComboBox();
 	}
