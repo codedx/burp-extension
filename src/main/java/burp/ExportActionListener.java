@@ -49,9 +49,9 @@ public class ExportActionListener implements ActionListener{
 					StatusLine response = sendData(report, getServer());
 					int responseCode = response.getStatusCode();
 					if(responseCode == 202){
-						burpExtender.message("The report was succesfully uploaded to Code Dx.", "Success");
+						burpExtender.message("The report was successfully uploaded to Code Dx.", "Success");
 					} else if(responseCode == 403){
-						burpExtender.error("The server returned Error 403: Forbidden.\nThe API Key may be incorrect or have insufficent permissions for this project.");
+						burpExtender.error("The server returned Error 403: Forbidden.\nThe API Key may be incorrect or have insufficient permissions for this project.");
 					} else if(responseCode == 404){
 						burpExtender.error("The server returned Error 404: Not Found.\nThe Server URL may be wrong or the project may no longer exist.");
 					} else {
