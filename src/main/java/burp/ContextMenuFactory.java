@@ -47,9 +47,10 @@ public class ContextMenuFactory implements IContextMenuFactory{
 				@Override
 				protected String getServer(){
 					burpExtender.updateProjects();
-					if(burpExtender.getProjects().length > 0){
+					NameValuePair[] projects = burpExtender.getProjects();
+					if(projects.length > 0){
 						Object sel = JOptionPane.showInputDialog(null, "Select a Project", "Send to Code Dx", 
-								JOptionPane.QUESTION_MESSAGE, null, burpExtender.getProjects(), burpExtender.getProjects()[0]);
+								JOptionPane.QUESTION_MESSAGE, null, projects, projects[0]);
 						if(sel instanceof NameValuePair)
 							return burpExtender.getServerUrl() + "/api/projects/" + ((NameValuePair)sel).getValue() + "/analysis";
 					}

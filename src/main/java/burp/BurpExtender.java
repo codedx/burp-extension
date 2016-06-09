@@ -19,29 +19,23 @@ package burp;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.net.URL;
+import java.security.GeneralSecurityException;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
+import javax.swing.Icon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -55,19 +49,20 @@ import javax.swing.SwingUtilities;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.ssl.SSLContextBuilder;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.secdec.codedx.security.SSLConnectionSocketFactoryFactory;
+
+import jiconfont.icons.FontAwesome;
+import jiconfont.swing.IconFontSwing;
+
 public class BurpExtender implements IBurpExtender, ITab {
-	private IBurpExtenderCallbacks callbacks;
-	//private IExtensionHelpers helpers;
+	public IBurpExtenderCallbacks callbacks;
 	private JScrollPane pane;
 
 	private JTextField serverUrl;
@@ -75,14 +70,10 @@ public class BurpExtender implements IBurpExtender, ITab {
 	private JTextField targetUrl;
 	private JComboBox<NameValuePair> projectBox;
 	private NameValuePair[] projectArr = new BasicNameValuePair[0];
-	private JCheckBox ignoreSelfSigned;
-	private JCheckBox ignoreMismatched;
 	
 	public static final String SERVER_KEY = "cdxServer";
 	public static final String API_KEY = "cdxApiKey";
 	public static final String TARGET_KEY = "cdxTarget";
-	public static final String SELF_SIGNED_KEY = "cdxIgnoreSelfSigned";
-	public static final String MISMATCHED_KEY = "cdxIgnoreMismatched";
 	
 	@Override
 	public void registerExtenderCallbacks(final IBurpExtenderCallbacks callbacks) {
@@ -94,6 +85,8 @@ public class BurpExtender implements IBurpExtender, ITab {
 		// set our extension name
 		callbacks.setExtensionName("Code Dx");
 
+		IconFontSwing.register(FontAwesome.getIconFont());
+		
 		// create our UI
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
@@ -111,69 +104,11 @@ public class BurpExtender implements IBurpExtender, ITab {
 	private JPanel createMainPanel() {
 		JPanel main = new JPanel();
 		main.setLayout(new GridBagLayout());
-
-		// Create Export Button
-		Insets ins = new Insets(10, 8, 8, 8);
-
-		JButton exportBtn = new JButton();
-		exportBtn.setText("Send to Code Dx");
-		exportBtn.addActionListener(new ExportActionListener(this, callbacks));
-		callbacks.customizeUiComponent(exportBtn);
-		GridBagConstraints btnGBC = new GridBagConstraints();
-		btnGBC.gridx = 0;
-		btnGBC.insets = ins;
-		btnGBC.anchor = GridBagConstraints.NORTHWEST;
-		main.add(exportBtn, btnGBC);
-
-		// Separator
-		JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
-		callbacks.customizeUiComponent(sep);
-		GridBagConstraints sepGBC = new GridBagConstraints();
-		sepGBC.gridwidth = 3;
-		sepGBC.gridx = 0;
-		sepGBC.fill = GridBagConstraints.HORIZONTAL;
-		sepGBC.insets = ins;
-		main.add(sep, sepGBC);
-
-		// Create SSL Settings
-		// The checkboxes aren't added until later. They need to be initialized here because
-		// when the project combobox is created, it needs their values to update the project array.
-		ActionListener checkActionListener = new ActionListener(){
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				String key = e.getActionCommand();
-				String value = Boolean.toString(((JCheckBox)e.getSource()).isSelected());
-				callbacks.saveExtensionSetting(key, value);
-			}
-		};
-		String boolStr = callbacks.loadExtensionSetting(BurpExtender.SELF_SIGNED_KEY);
-		boolean value = "true".equals(boolStr) ? true : false;
-		ignoreSelfSigned = new JCheckBox("Ignore self-signed SSL certificates", value);
-		ignoreSelfSigned.setActionCommand(BurpExtender.SELF_SIGNED_KEY);
-		ignoreSelfSigned.addActionListener(checkActionListener);
-		callbacks.customizeUiComponent(ignoreSelfSigned);
-		
-		boolStr = callbacks.loadExtensionSetting(BurpExtender.MISMATCHED_KEY);
-		value = "true".equals(boolStr) ? true : false;
-		ignoreMismatched = new JCheckBox("Ignore mismatched hostname SSL certificates", value);
-		ignoreMismatched.setActionCommand(BurpExtender.MISMATCHED_KEY);
-		ignoreMismatched.addActionListener(checkActionListener);
-		callbacks.customizeUiComponent(ignoreMismatched);
 		
 		// Create Settings Panel
 		JPanel settings = new JPanel(new GridBagLayout());
 
 		createTitle("Settings", settings);
-		
-		FocusListener projectFocus = new FocusListener(){
-			@Override
-			public void focusGained(FocusEvent f) {
-			}
-			@Override
-			public void focusLost(FocusEvent f) {
-				updateProjects(false);
-			}
-		};
 		KeyListener projectEnter = new KeyListener(){
 			@Override
 			public void keyPressed(KeyEvent k) {
@@ -189,12 +124,10 @@ public class BurpExtender implements IBurpExtender, ITab {
 		};
 
 		serverUrl = labelTextField("Server URL: ", settings, callbacks.loadExtensionSetting(BurpExtender.SERVER_KEY));
-		serverUrl.addFocusListener(projectFocus);
 		serverUrl.addKeyListener(projectEnter);
 		serverUrl.addFocusListener(new JTextFieldSettingFocusListener(BurpExtender.SERVER_KEY, callbacks));
 		
 		apiKey = labelTextField("API Key: ", settings, callbacks.loadExtensionSetting(BurpExtender.API_KEY));
-		apiKey.addFocusListener(projectFocus);
 		apiKey.addKeyListener(projectEnter);
 		apiKey.addFocusListener(new JTextFieldSettingFocusListener(BurpExtender.API_KEY, callbacks));
 		
@@ -208,16 +141,32 @@ public class BurpExtender implements IBurpExtender, ITab {
 		setGBC.anchor = GridBagConstraints.NORTHWEST;
 		main.add(settings, setGBC);
 		
-		// Adding SSL checkboxes
-		GridBagConstraints sslGBC = new GridBagConstraints();
-		sslGBC.gridx = 0;
-		sslGBC.anchor = GridBagConstraints.NORTHWEST;
-		sslGBC.insets = new Insets(0, 10, 0, 0);
-		main.add(ignoreSelfSigned, sslGBC);
-		sslGBC.weightx = 1.0;
-		sslGBC.weighty = 1.0;
-		main.add(ignoreMismatched, sslGBC);
+		// Separator
+		Insets ins = new Insets(10, 8, 2, 0);
 
+		JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
+		callbacks.customizeUiComponent(sep);
+		GridBagConstraints sepGBC = new GridBagConstraints();
+		sepGBC.gridwidth = 3;
+		sepGBC.gridx = 0;
+		sepGBC.fill = GridBagConstraints.HORIZONTAL;
+		sepGBC.insets = ins;
+		main.add(sep, sepGBC);
+		
+		// Create Export Button
+		JButton exportBtn = new JButton();
+		exportBtn.setText("Send to Code Dx");
+		exportBtn.addActionListener(new ExportActionListener(this, callbacks));
+		callbacks.customizeUiComponent(exportBtn);
+		GridBagConstraints btnGBC = new GridBagConstraints();
+		btnGBC.gridx = 0;
+		btnGBC.weightx = 1.0;
+		btnGBC.weighty = 1.0;
+		btnGBC.insets = ins;
+		btnGBC.anchor = GridBagConstraints.NORTHWEST;
+		main.add(exportBtn, btnGBC);
+		
+		updateProjectComboBox();
 		return main;
 	}
 	
@@ -230,17 +179,17 @@ public class BurpExtender implements IBurpExtender, ITab {
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridwidth = 0;
 		gbc.gridx = 0;
-		gbc.insets = new Insets(0, 8, 0, 0);
+		gbc.insets = new Insets(8, 8, 0, 0);
 		gbc.anchor = GridBagConstraints.WEST;
 		cont.add(title, gbc);
 	}
 
 	private JTextField labelTextField(String label, Container cont, String base) {
-		GridBagConstraints gbc = createSettingsLabel(label, cont);
+		createSettingsLabel(label, cont);
     	
 		JTextField textField = new JTextField(base, 30);
 		callbacks.customizeUiComponent(textField);
-		gbc = new GridBagConstraints();
+		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 1;
 		cont.add(textField, gbc);
 
@@ -248,17 +197,19 @@ public class BurpExtender implements IBurpExtender, ITab {
 	}
 	
 	private JComboBox<NameValuePair> createProjectComboBox(Container cont){
-		updateProjects();
-		GridBagConstraints gbc = createSettingsLabel("Project: ", cont);
+		createSettingsLabel("Project: ", cont);
 		
 		JComboBox<NameValuePair> box = new JComboBox<NameValuePair>(projectArr);
 		callbacks.customizeUiComponent(box);
-		gbc = new GridBagConstraints();
+		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 1;
 		gbc.fill = GridBagConstraints.HORIZONTAL;
 		cont.add(box, gbc);
 		
-		JButton refresh = new JButton("Refresh");
+		Icon icon = IconFontSwing.buildIcon(FontAwesome.REFRESH, 18, new Color(128, 128, 128));
+
+		JButton refresh = new JButton(icon);
+		refresh.setPreferredSize(new Dimension(icon.getIconHeight()+5,icon.getIconHeight()+5));
 		refresh.addActionListener(new ActionListener(){
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -270,12 +221,13 @@ public class BurpExtender implements IBurpExtender, ITab {
 		gbc = new GridBagConstraints();
 		gbc.gridx = 2;
 		gbc.gridy = 4;
+		gbc.anchor = GridBagConstraints.WEST;
 		cont.add(refresh, gbc);
 		
 		return box;
 	}
-
-	private GridBagConstraints createSettingsLabel(String label, Container cont){
+	
+	private void createSettingsLabel(String label, Container cont){
 		JLabel labelField = new JLabel(label);
     	labelField.setHorizontalAlignment(SwingConstants.LEFT);
 		callbacks.customizeUiComponent(labelField);
@@ -285,7 +237,6 @@ public class BurpExtender implements IBurpExtender, ITab {
 		gbc.insets = new Insets(0, 10, 0, 0);
 		gbc.anchor = GridBagConstraints.WEST;
 		cont.add(labelField, gbc);
-		return gbc;
 	}
 
 	public String getServerUrl() {
@@ -308,14 +259,10 @@ public class BurpExtender implements IBurpExtender, ITab {
 	}
 	
 	public NameValuePair[] getProjects(){
-		return projectArr;
+		return projectArr.clone();
 	}
 	
-	public void updateProjects(){
-		updateProjects(true);
-	}
-	
-	public void updateProjects(boolean warnSSL) {
+	public void updateProjects() {
 		CloseableHttpClient client = null;
 		BufferedReader rd = null;
 		NameValuePair[] projectArr = new BasicNameValuePair[0];
@@ -323,46 +270,32 @@ public class BurpExtender implements IBurpExtender, ITab {
 			client = getHttpClient();
 			HttpGet get = new HttpGet(getServerUrl() + "/api/projects");
 			get.setHeader("API-Key", getApiKey());
-			try{
-				HttpResponse response = client.execute(get);
-				rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
-		
-				StringBuffer result = new StringBuffer();
-				String line = "";
-				while ((line = rd.readLine()) != null) {
-					result.append(line);
-				}
-				
-				JSONObject obj = new JSONObject(result.toString());
-				JSONArray projects = obj.getJSONArray("projects");
-				
-				projectArr = new NameValuePair[projects.length()];
-				for(int i = 0; i < projectArr.length; i++){
-					int id = projects.getJSONObject(i).getInt("id");
-					String name = projects.getJSONObject(i).getString("name");
-					projectArr[i] = new BasicNameValuePair(name,Integer.toString(id)){
-						private static final long serialVersionUID = -6671681121783779976L;
-						@Override
-						public String toString(){
-							return getName() + " (id: " + getValue() + ")";
-						}
-					};
-				}
-			} catch (SSLHandshakeException e){
-				if(warnSSL)
-					error("An SSL Handshake Exception occured.\nCode Dx may be using a self-signed SSL certificate.\n"
-						+ "You can allow self-signed certificates in the plugin settings.");
-			} catch (SSLPeerUnverifiedException e) {
-				if(warnSSL)
-					error("An SSL Peer Unverified Exception occured.\nCode Dx may be configured with an SSL certificate "
-						+ "that does not match its hostname.\nYou can allow mismatched certificates in the plugin settings.");
+			HttpResponse response = client.execute(get);
+			rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+	
+			StringBuffer result = new StringBuffer();
+			String line = "";
+			while ((line = rd.readLine()) != null) {
+				result.append(line);
 			}
-		} catch (IOException e) {} finally {
+			
+			JSONObject obj = new JSONObject(result.toString());
+			JSONArray projects = obj.getJSONArray("projects");
+			
+			projectArr = new NameValuePair[projects.length()];
+			for(int i = 0; i < projectArr.length; i++){
+				int id = projects.getJSONObject(i).getInt("id");
+				String name = projects.getJSONObject(i).getString("name");
+				projectArr[i] = new ModifiedNameValuePair(name,Integer.toString(id));
+			}
+		} catch (JSONException e){
+			error("A JSON Exception occurred. Check that the Server URL is correct.");
+		} catch (IOException e) {e.printStackTrace();} finally {
 			if(client != null)
 				try {client.close();} catch (IOException e) {}
 			if(rd != null)
 				try {rd.close();} catch (IOException e) {}
-		}
+		} 
 		this.projectArr = projectArr;
 		updateProjectComboBox();
 	}
@@ -375,29 +308,13 @@ public class BurpExtender implements IBurpExtender, ITab {
 		}
 	}
 	
-	public CloseableHttpClient getHttpClient(){
-		boolean selfSigned = ignoreSelfSigned.isSelected();
-		boolean mistmatched = ignoreMismatched.isSelected();
-		if(selfSigned || mistmatched){
-			SSLContextBuilder builder = new SSLContextBuilder();
-			try {
-				if(selfSigned)
-					builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-				SSLConnectionSocketFactory sslsf;
-				if(mistmatched){
-					sslsf = new SSLConnectionSocketFactory(builder.build(), new HostnameVerifier() {
-						@Override
-						public boolean verify(String hostname, SSLSession session) {
-							return true;
-						}
-					});
-				} else {
-					sslsf = new SSLConnectionSocketFactory(builder.build());
-				}
-				return HttpClients.custom().setSSLSocketFactory(sslsf).build();
-			} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {}
+	public CloseableHttpClient getHttpClient(){	
+		try {
+			return HttpClientBuilder.create().setSSLSocketFactory(SSLConnectionSocketFactoryFactory.getFactory(new URL(getServerUrl()).getHost(),this)).build();
+		} catch (IOException | GeneralSecurityException e) {
+			e.printStackTrace();
 		}
-		return HttpClientBuilder.create().build();
+		return null;
 	}
 	
 	public void error(String message) {
@@ -408,8 +325,8 @@ public class BurpExtender implements IBurpExtender, ITab {
 		JOptionPane.showMessageDialog(getUiComponent(), message, "Warning", JOptionPane.WARNING_MESSAGE);
 	}
 
-	public void message(String message) {
-		JOptionPane.showMessageDialog(getUiComponent(), message);
+	public void message(String message, String title) {
+		JOptionPane.showMessageDialog(getUiComponent(), message, title, JOptionPane.PLAIN_MESSAGE);
 	}
 	
 	@Override
@@ -420,5 +337,16 @@ public class BurpExtender implements IBurpExtender, ITab {
 	@Override
 	public Component getUiComponent() {
 		return pane;
+	}
+	
+	private static class ModifiedNameValuePair extends BasicNameValuePair{
+		private static final long serialVersionUID = -6671681121783779976L;
+		public ModifiedNameValuePair(String name, String value) {
+			super(name, value);
+		}
+		@Override
+		public String toString(){
+			return getName() + " (id: " + getValue() + ")";
+		}
 	}
 }

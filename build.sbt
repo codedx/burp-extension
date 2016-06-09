@@ -12,5 +12,7 @@ libraryDependencies ++= Seq(
   "org.apache.httpcomponents" % "httpcore" % "4.4.4",
   "org.apache.httpcomponents" % "httpmime" % "4.5.2",
   "commons-logging" % "commons-logging" % "1.2",
-  "org.json" % "json" % "20160212"
+  "org.json" % "json" % "20160212",
+  "com.github.jiconfont" % "jiconfont-swing" % "1.0.0",
+  "com.github.jiconfont" % "jiconfont-font_awesome" % "4.5.0.3"
 )
