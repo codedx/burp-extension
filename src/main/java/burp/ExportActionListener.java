@@ -57,18 +57,18 @@ public class ExportActionListener implements ActionListener{
 					if(responseCode == 202){
 						burpExtender.message("The report was successfully uploaded to Code Dx.", "Success");
 					} else if(responseCode == 400) {
-						burpExtender.error("An unexpcted error occured and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
+						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
 					} else if(responseCode == 403){
 						burpExtender.error("The report could not be sent. The server returned Error 403: Forbidden.\nThe API Key may be incorrect or have insufficient permissions for this project.");
 					} else if(responseCode == 404){
 						burpExtender.error("The report could not be sent. The server returned Error 404: Not Found.\nThe Server URL may be wrong or the project may no longer exist.");
 					} else if(responseCode == 415) {
-						burpExtender.error("An unexpcted error occured and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
+						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
 					} else {
-						burpExtender.error("An unexpcted error occured and the report could not be sent.\nThe response code is: " + responseLine);
+						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe response code is: " + responseLine);
 					}
 				} catch (IOException e1){
-					burpExtender.error("An unexpcted error occured and the report could not be sent.");
+					burpExtender.error("An unexpected error occurred and the report could not be sent.");
 				}
 				report.delete();
 			} else {

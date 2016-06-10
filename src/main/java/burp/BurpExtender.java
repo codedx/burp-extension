@@ -292,7 +292,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 				warn("No projects were found.");
 			}
 		} catch (JSONException | IOException e){
-			error("An error ocurred while trying to update the project list.\nCheck that the Server URL and API-Key are correct.");	
+			error("An error occurred while trying to update the project list.\nCheck that the Server URL and API-Key are correct.");	
 		} finally {
 			if(client != null)
 				try {client.close();} catch (IOException e) {}
