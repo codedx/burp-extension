@@ -16,6 +16,11 @@
 
 package com.secdec.codedx.security;
 
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
@@ -27,7 +32,9 @@ import java.util.StringTokenizer;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLException;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 
@@ -58,14 +65,36 @@ public class InvalidCertificateDialogStrategy implements InvalidCertificateStrat
 			X509Certificate cert = (X509Certificate) genericCert;
 			DefaultHostnameVerifier verifier = (DefaultHostnameVerifier) defaultHostVerifier;
 
-			StringBuilder dialogMessage = new StringBuilder(
-					"Unable to establish a secure connection because the certificate is not trusted.\n\nIssuer: ");
-
-			dialogMessage.append(cert.getIssuerDN().toString());
-
+			JPanel message = new JPanel(new GridBagLayout());
+			GridBagConstraints gbc = new GridBagConstraints();
+			gbc.gridwidth = 2;
+			gbc.insets = new Insets(0,0,10,0);
+			gbc.anchor = GridBagConstraints.WEST;
+			message.add(new JLabel("Unable to establish a secure connection because the certificate is not trusted"), gbc);
+			
+			gbc = new GridBagConstraints();
+			gbc.gridy = 2;
+			gbc.insets = new Insets(2,0,2,0);
+			gbc.anchor = GridBagConstraints.WEST;
+			
+			JLabel issuer = new JLabel("Issuer: ");
+			Font defaultFont = issuer.getFont();
+			Font bold = new Font(defaultFont.getName(), Font.BOLD, defaultFont.getSize());
+			issuer.setFont(bold);
+			
+			message.add(issuer,gbc);
+			gbc.gridx = 1;
+			message.add(new JLabel(cert.getIssuerDN().toString()),gbc);
+			
 			try {
-				dialogMessage.append("\n\nSHA-256  Fingerprint: ");
-				dialogMessage.append(toHexString(getSHA256(cert.getEncoded()), ":"));
+				JLabel fingerprint = new JLabel("SHA-256 Fingerprint: ");
+				fingerprint.setFont(bold);
+				gbc.gridx = 0;
+				gbc.gridy += 1;
+				message.add(fingerprint, gbc);
+				
+				gbc.gridx = 1;
+				message.add(new JLabel(toHexString(getSHA256(cert.getEncoded()), "")), gbc);
 			} catch (CertificateEncodingException e) {
 				// this shouldn't actually ever happen
 			}
@@ -75,25 +104,32 @@ public class InvalidCertificateDialogStrategy implements InvalidCertificateStrat
 			} catch (SSLException e) {
 				String cn = getCN(cert);
 
-				dialogMessage.append("\n\nHost Mismatch: ");
+				JLabel mismatch = new JLabel("Host Mismatch: ");
+				mismatch.setFont(bold);
+				gbc.gridx = 0;
+				gbc.gridy += 1;
+				message.add(mismatch, gbc);
+				
 				String msg;
 				if (cn != null) {
 					msg = String.format("Expected '%s', but the certificate is for '%s'.", host, cn);
 				} else {
 					msg = e.getMessage();
 				}
-				dialogMessage.append(msg);
+				
+				gbc.gridx = 1;
+				message.add(new JLabel(msg), gbc);
 			}
-
+			
 			// Open the dialog, and return its result
-			String choice = (String) JOptionPane.showInputDialog(burpExtender.getUiComponent(),
-					dialogMessage.toString(), dialogTitle, JOptionPane.QUESTION_MESSAGE, null, dialogButtons, null);
+			int choice = JOptionPane.showOptionDialog(burpExtender.getUiComponent(),
+					message, dialogTitle, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, dialogButtons, null);
 			switch (choice) {
-			case ("Reject"):
+			case (0):
 				return CertificateAcceptance.REJECT;
-			case ("Accept Temporarily"):
+			case (1):
 				return CertificateAcceptance.ACCEPT_TEMPORARILY;
-			case ("Accept Permanently"):
+			case (2):
 				return CertificateAcceptance.ACCEPT_PERMANENTLY;
 			}
 		}
