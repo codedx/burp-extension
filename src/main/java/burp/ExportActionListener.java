@@ -65,7 +65,7 @@ public class ExportActionListener implements ActionListener{
 					} else if(responseCode == 415) {
 						burpExtender.error("An unexpcted error occured and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
 					} else {
-						burpExtender.error("The report could not be sent. The response code is: " + response);
+						burpExtender.error("An unexpcted error occured and the report could not be sent.\nThe response code is: " + responseLine);
 					}
 				} catch (IOException e1){
 					burpExtender.error("An unexpcted error occured and the report could not be sent.");
