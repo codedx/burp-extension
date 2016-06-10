@@ -67,7 +67,6 @@ public class InvalidCertificateDialogStrategy implements InvalidCertificateStrat
 				dialogMessage.append("\n\nSHA-256  Fingerprint: ");
 				dialogMessage.append(toHexString(getSHA256(cert.getEncoded()), ":"));
 			} catch (CertificateEncodingException e) {
-				e.printStackTrace();
 				// this shouldn't actually ever happen
 			}
 

@@ -18,8 +18,10 @@ package burp;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -30,10 +32,13 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class ExportActionListener implements ActionListener{
 	private BurpExtender burpExtender;
 	private IBurpExtenderCallbacks callbacks;
+	
 	public ExportActionListener(BurpExtender be, IBurpExtenderCallbacks cb){
 		burpExtender = be;
 		callbacks = cb;
@@ -46,19 +51,24 @@ public class ExportActionListener implements ActionListener{
 			callbacks.generateScanReport("XML", issues, report);
 			if(report != null && report.exists()){
 				try{
-					StatusLine response = sendData(report, getServer());
-					int responseCode = response.getStatusCode();
+					HttpResponse response = sendData(report, getServer());
+					StatusLine responseLine = response.getStatusLine();
+					int responseCode = responseLine.getStatusCode();
 					if(responseCode == 202){
-						burpExtender.message("The report was succesfully uploaded to Code Dx.", "Success");
+						burpExtender.message("The report was successfully uploaded to Code Dx.", "Success");
+					} else if(responseCode == 400) {
+						burpExtender.error("An unexpcted error occured and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
 					} else if(responseCode == 403){
-						burpExtender.error("The server returned Error 403: Forbidden.\nThe API Key may be incorrect or have insufficent permissions for this project.");
+						burpExtender.error("The report could not be sent. The server returned Error 403: Forbidden.\nThe API Key may be incorrect or have insufficient permissions for this project.");
 					} else if(responseCode == 404){
-						burpExtender.error("The server returned Error 404: Not Found.\nThe Server URL may be wrong or the project may no longer exist.");
+						burpExtender.error("The report could not be sent. The server returned Error 404: Not Found.\nThe Server URL may be wrong or the project may no longer exist.");
+					} else if(responseCode == 415) {
+						burpExtender.error("An unexpcted error occured and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
 					} else {
 						burpExtender.error("The report could not be sent. The response code is: " + response);
 					}
 				} catch (IOException e1){
-					burpExtender.error("The report could not be sent.");
+					burpExtender.error("An unexpcted error occured and the report could not be sent.");
 				}
 				report.delete();
 			} else {
@@ -69,7 +79,22 @@ public class ExportActionListener implements ActionListener{
 		}
 	}
 	
-	private StatusLine sendData(File data, String urlStr) throws IOException{
+	private String getResponseError(HttpResponse response){
+		String msg = ".";
+		try (BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"))){
+			StringBuffer result = new StringBuffer();
+			String line = "";
+			while ((line = rd.readLine()) != null) {
+				result.append(line);
+			}
+			
+			JSONObject obj = new JSONObject(result.toString());
+			msg = " with the response: " + obj.getString("error");
+		} catch (JSONException | IOException e){}
+		return msg;
+	}
+	
+	private HttpResponse sendData(File data, String urlStr) throws IOException{
 		CloseableHttpClient client = burpExtender.getHttpClient();
 		HttpPost post = new HttpPost(urlStr);
         post.setHeader("API-Key", burpExtender.getApiKey());
@@ -90,7 +115,7 @@ public class ExportActionListener implements ActionListener{
 	    }
 	    client.close();
 	    
-		return responseCode;
+		return response;
 	}
 	
 	protected IScanIssue[] getIssues(){

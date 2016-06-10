@@ -288,16 +288,16 @@ public class BurpExtender implements IBurpExtender, ITab {
 				String name = projects.getJSONObject(i).getString("name");
 				projectArr[i] = new ModifiedNameValuePair(name,Integer.toString(id));
 			}
-		} catch (JSONException e){
-			error("A JSON Exception occurred. Check that the Server URL is correct.");
-		} catch (IOException e) {e.printStackTrace();} finally {
+			if(projectArr.length == 0){
+				warn("No projects were found.");
+			}
+		} catch (JSONException | IOException e){
+			error("An error ocurred while trying to update the project list.\nCheck that the Server URL and API-Key are correct.");	
+		} finally {
 			if(client != null)
 				try {client.close();} catch (IOException e) {}
 			if(rd != null)
 				try {rd.close();} catch (IOException e) {}
-		}
-		if(projectArr.length == 0){
-			warn("No projects were found.");
 		}
 		this.projectArr = projectArr;
 		updateProjectComboBox();
@@ -314,9 +314,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 	public CloseableHttpClient getHttpClient(){	
 		try {
 			return HttpClientBuilder.create().setSSLSocketFactory(SSLConnectionSocketFactoryFactory.getFactory(new URL(getServerUrl()).getHost(),this)).build();
-		} catch (IOException | GeneralSecurityException e) {
-			e.printStackTrace();
-		}
+		} catch (IOException | GeneralSecurityException e) {}
 		return null;
 	}
 	
