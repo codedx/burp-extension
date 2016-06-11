@@ -1,7 +1,7 @@
 burp-extension
 ==============
 
-This is an extension for the web application security testing platform [Burp](https://portswigger.net/burp/) that allows reports to be uploaded directly to Code Dx.
+This is an extension for the web application security testing platform [Burp Suite](https://portswigger.net/burp/) that allows reports to be uploaded directly to [Code Dx](https://www.codedx.com).
 
 Building
 --------
