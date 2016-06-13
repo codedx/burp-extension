@@ -145,8 +145,8 @@ public class BurpExtender implements IBurpExtender, ITab {
 		main.add(settings, setGBC);
 		
 		// Separator
-		Insets ins = new Insets(10, 8, 2, 0);
-
+		Insets ins = new Insets(10, 10, 2, 10);
+		
 		JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
 		callbacks.customizeUiComponent(sep);
 		GridBagConstraints sepGBC = new GridBagConstraints();
@@ -182,7 +182,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridwidth = 0;
 		gbc.gridx = 0;
-		gbc.insets = new Insets(8, 8, 0, 0);
+		gbc.insets = new Insets(8, 10, 0, 0);
 		gbc.anchor = GridBagConstraints.WEST;
 		cont.add(title, gbc);
 	}
@@ -237,7 +237,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridwidth = 1;
 		gbc.gridx = 0;
-		gbc.insets = new Insets(0, 10, 0, 0);
+		gbc.insets = new Insets(0, 12, 0, 0);
 		gbc.anchor = GridBagConstraints.WEST;
 		cont.add(labelField, gbc);
 	}
