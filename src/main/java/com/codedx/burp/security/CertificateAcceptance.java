@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.secdec.codedx.security;
+package com.codedx.burp.security;
 
 /**
  * Enumeration to describe the possible outcomes of an

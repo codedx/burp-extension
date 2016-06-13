@@ -14,7 +14,7 @@
  * limitations under the License.
  */
  
- package burp;
+ package com.codedx.burp;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +23,12 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 
 import org.apache.http.NameValuePair;
+
+import burp.BurpExtender;
+import burp.IBurpExtenderCallbacks;
+import burp.IContextMenuFactory;
+import burp.IContextMenuInvocation;
+import burp.IScanIssue;
 
 public class ContextMenuFactory implements IContextMenuFactory{
 

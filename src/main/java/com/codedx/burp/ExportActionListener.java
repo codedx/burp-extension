@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package burp;
+package com.codedx.burp;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -34,6 +34,10 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import burp.BurpExtender;
+import burp.IBurpExtenderCallbacks;
+import burp.IScanIssue;
 
 public class ExportActionListener implements ActionListener{
 	private BurpExtender burpExtender;

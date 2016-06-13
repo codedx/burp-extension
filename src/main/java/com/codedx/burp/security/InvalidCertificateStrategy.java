@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.secdec.codedx.security;
+package com.codedx.burp.security;
 
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
