@@ -43,9 +43,9 @@ public class ExportActionListener implements ActionListener{
 	private BurpExtender burpExtender;
 	private IBurpExtenderCallbacks callbacks;
 	
-	public ExportActionListener(BurpExtender be, IBurpExtenderCallbacks cb){
-		burpExtender = be;
-		callbacks = cb;
+	public ExportActionListener(BurpExtender burpExtender, IBurpExtenderCallbacks callbacks){
+		this.burpExtender = burpExtender;
+		this.callbacks = callbacks;
 	}
 	
 	public void actionPerformed(ActionEvent e){
@@ -67,7 +67,7 @@ public class ExportActionListener implements ActionListener{
 					} else if(responseCode == 404){
 						burpExtender.error("The report could not be sent. The server returned Error 404: Not Found.\nThe Server URL may be wrong or the project may no longer exist.");
 					} else if(responseCode == 415) {
-						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
+						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe server returned Error 415: Unsupported Media Type" + getResponseError(response));
 					} else {
 						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe response code is: " + responseLine);
 					}
@@ -101,24 +101,23 @@ public class ExportActionListener implements ActionListener{
 	private HttpResponse sendData(File data, String urlStr) throws IOException{
 		CloseableHttpClient client = burpExtender.getHttpClient();
 		HttpPost post = new HttpPost(urlStr);
-        post.setHeader("API-Key", burpExtender.getApiKey());
-        
+		post.setHeader("API-Key", burpExtender.getApiKey());
+		
 		MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 		builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
 		builder.addPart("file", new FileBody(data));
 		
 		HttpEntity entity = builder.build();
 		post.setEntity(entity);
-
-	    HttpResponse response = client.execute(post);
-	    HttpEntity resEntity = response.getEntity();
-	    StatusLine responseCode = response.getStatusLine();
-	    
-	    if (resEntity != null) {
-	    	EntityUtils.consume(resEntity);
-	    }
-	    client.close();
-	    
+		
+		HttpResponse response = client.execute(post);
+		HttpEntity resEntity = response.getEntity();
+		
+		if (resEntity != null) {
+			EntityUtils.consume(resEntity);
+		}
+		client.close();
+		
 		return response;
 	}
 	

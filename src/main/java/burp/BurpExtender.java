@@ -26,6 +26,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.BufferedReader;
@@ -112,17 +113,11 @@ public class BurpExtender implements IBurpExtender, ITab {
 		JPanel settings = new JPanel(new GridBagLayout());
 
 		createTitle("Settings", settings);
-		KeyListener projectEnter = new KeyListener(){
+		KeyListener projectEnter = new KeyAdapter(){
 			@Override
 			public void keyPressed(KeyEvent k) {
 				if(k.getKeyCode() == KeyEvent.VK_ENTER)
 					updateProjects();
-			}
-			@Override
-			public void keyReleased(KeyEvent k) {
-			}
-			@Override
-			public void keyTyped(KeyEvent k) {
 			}
 		};
 
@@ -232,7 +227,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 	
 	private void createSettingsLabel(String label, Container cont){
 		JLabel labelField = new JLabel(label);
-    	labelField.setHorizontalAlignment(SwingConstants.LEFT);
+		labelField.setHorizontalAlignment(SwingConstants.LEFT);
 		callbacks.customizeUiComponent(labelField);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridwidth = 1;

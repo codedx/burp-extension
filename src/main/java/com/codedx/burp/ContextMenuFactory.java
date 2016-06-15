@@ -35,9 +35,9 @@ public class ContextMenuFactory implements IContextMenuFactory{
 	private BurpExtender burpExtender;
 	private IBurpExtenderCallbacks callbacks;
 	
-	public ContextMenuFactory(BurpExtender be, IBurpExtenderCallbacks cb){
-		burpExtender = be;
-		callbacks = cb;
+	public ContextMenuFactory(BurpExtender burpExtender, IBurpExtenderCallbacks callbacks){
+		this.burpExtender = burpExtender;
+		this.callbacks = callbacks;
 	}
 	
 	@Override
