@@ -16,6 +16,7 @@
  
  package com.codedx.burp;
 
+import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,26 +43,32 @@ public class ContextMenuFactory implements IContextMenuFactory{
 	
 	@Override
 	public List<JMenuItem> createMenuItems(IContextMenuInvocation invocation) {
-		if(invocation.getInvocationContext() == IContextMenuInvocation.CONTEXT_SCANNER_RESULTS ||
-				invocation.getInvocationContext() == IContextMenuInvocation.CONTEXT_TARGET_SITE_MAP_TREE){
+		if(invocation.getInvocationContext() == IContextMenuInvocation.CONTEXT_SCANNER_RESULTS){
 			List<JMenuItem> lst = new ArrayList<JMenuItem>();
 			JMenuItem export = new JMenuItem("Send to Code Dx");
-			export.addActionListener(new ExportActionListener(burpExtender, callbacks){				
+			export.addActionListener(new ExportActionListener(burpExtender, callbacks){
+				private String server;
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					server = null;
+					burpExtender.updateProjects();
+					NameValuePair[] projects = burpExtender.getProjects();
+					if(projects.length > 0){
+						Object sel = JOptionPane.showInputDialog(null, "Select a Project", "Send to Code Dx", 
+								JOptionPane.QUESTION_MESSAGE, null, projects, projects[0]);
+						if(sel != null){
+							server = burpExtender.getServerUrl() + "/api/projects/" + ((NameValuePair)sel).getValue() + "/analysis";
+							super.actionPerformed(e);
+						}
+					}
+				}
 				@Override
 				protected IScanIssue[] getIssues(){
 					return invocation.getSelectedIssues();
 				}
 				@Override
 				protected String getServer(){
-					burpExtender.updateProjects();
-					NameValuePair[] projects = burpExtender.getProjects();
-					if(projects.length > 0){
-						Object sel = JOptionPane.showInputDialog(null, "Select a Project", "Send to Code Dx", 
-								JOptionPane.QUESTION_MESSAGE, null, projects, projects[0]);
-						if(sel instanceof NameValuePair)
-							return burpExtender.getServerUrl() + "/api/projects/" + ((NameValuePair)sel).getValue() + "/analysis";
-					}
-					return "";
+					return server;
 				}
 			});
 			lst.add(export);

@@ -164,7 +164,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 		btnGBC.anchor = GridBagConstraints.NORTHWEST;
 		main.add(exportBtn, btnGBC);
 		
-		updateProjectComboBox();
+		updateProjects(true);
 		return main;
 	}
 	
@@ -260,12 +260,19 @@ public class BurpExtender implements IBurpExtender, ITab {
 		return projectArr.clone();
 	}
 	
-	public void updateProjects() {
+	public void updateProjects(){
+		updateProjects(false);
+	}
+	
+	//TODO tag errors
+	public void updateProjects(boolean ignoreMessages) {
 		CloseableHttpClient client = null;
 		BufferedReader rd = null;
 		NameValuePair[] projectArr = new BasicNameValuePair[0];
 		try{
 			client = getHttpClient();
+			if(client == null)
+				ignoreMessages = true;
 			HttpGet get = new HttpGet(getServerUrl() + "/api/projects");
 			get.setHeader("API-Key", getApiKey());
 			HttpResponse response = client.execute(get);
@@ -287,10 +294,14 @@ public class BurpExtender implements IBurpExtender, ITab {
 				projectArr[i] = new ModifiedNameValuePair(name,Integer.toString(id));
 			}
 			if(projectArr.length == 0){
-				warn("No projects were found.");
+				if(!ignoreMessages)
+					warn("No projects were found.");
 			}
 		} catch (JSONException | IOException e){
-			error("An error occurred while trying to update the project list.\nCheck that the Server URL and API-Key are correct.");	
+			if(!ignoreMessages)
+				error("An error occurred while trying to update the project list.\nCheck that the Server URL and API-Key are correct.");	
+		} catch (Exception e){
+			unknownError(e);
 		} finally {
 			if(client != null)
 				try {client.close();} catch (IOException e) {}
@@ -309,10 +320,14 @@ public class BurpExtender implements IBurpExtender, ITab {
 		}
 	}
 	
-	public CloseableHttpClient getHttpClient(){	
-		try {
-			return HttpClientBuilder.create().setSSLSocketFactory(SSLConnectionSocketFactoryFactory.getFactory(new URL(getServerUrl()).getHost(),this)).build();
-		} catch (IOException | GeneralSecurityException e) {}
+	public CloseableHttpClient getHttpClient() throws IOException, GeneralSecurityException{
+		try{
+			return HttpClientBuilder.create().setSSLSocketFactory(
+					SSLConnectionSocketFactoryFactory.getFactory(new URL(getServerUrl()).getHost(), this)).build();
+		} catch (Exception e){
+			error("An unknown error occurred while trying to establish the HTTP client.\nPlease check the error log in the Extensions tab for more details.");
+			e.printStackTrace();
+		}
 		return null;
 	}
 	
@@ -326,6 +341,11 @@ public class BurpExtender implements IBurpExtender, ITab {
 
 	public void message(String message, String title) {
 		JOptionPane.showMessageDialog(getUiComponent(), message, title, JOptionPane.PLAIN_MESSAGE);
+	}
+	
+	public void unknownError(Exception e){
+		error("An unknown error occurred, please check the error log in the Extensions tab for more details.");
+		e.printStackTrace();
 	}
 	
 	@Override

@@ -28,9 +28,9 @@ public class JTextFieldSettingFocusListener implements FocusListener{
 	private String key;
 	private IBurpExtenderCallbacks callbacks;
 	
-	public JTextFieldSettingFocusListener(String k, IBurpExtenderCallbacks cb) {
-		key = k;
-		callbacks = cb;
+	public JTextFieldSettingFocusListener(String key, IBurpExtenderCallbacks callbacks) {
+		this.key = key;
+		this.callbacks = callbacks;
 	}
 	
 	@Override
@@ -44,5 +44,4 @@ public class JTextFieldSettingFocusListener implements FocusListener{
 		if(!value.equals(prev))
 			callbacks.saveExtensionSetting(key, value);
 	}
-
 }

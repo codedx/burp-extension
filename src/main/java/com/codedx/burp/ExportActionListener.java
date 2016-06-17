@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -50,11 +51,11 @@ public class ExportActionListener implements ActionListener{
 		this.callbacks = callbacks;
 	}
 	
+	//TODO
 	public void actionPerformed(ActionEvent e){
 		IScanIssue[] issues = getIssues();
 		if(issues != null && issues.length > 0){
-			File report = getReportLocation();
-			callbacks.generateScanReport("XML", issues, report);
+			File report = generateReport(issues);
 			if(report != null && report.exists()){
 				try{
 					HttpResponse response = sendData(report, getServer());
@@ -73,7 +74,7 @@ public class ExportActionListener implements ActionListener{
 					} else {
 						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe response code is: " + responseLine);
 					}
-				} catch (IOException e1){
+				} catch (GeneralSecurityException | IOException e1){
 					burpExtender.error("An unexpected error occurred and the report could not be sent.");
 				}
 				report.delete();
@@ -99,30 +100,33 @@ public class ExportActionListener implements ActionListener{
 		} catch (JSONException | IOException e){}
 		return msg;
 	}
-
-	private static File getReportLocation() {
-	    String OS = System.getProperty("os.name").toUpperCase();
-	    Path env;
-	    if (OS.contains("WIN")){
-	        env = Paths.get(System.getenv("APPDATA"),"Code Dx","Burp Extension");
-	    }
-	    else if (OS.contains("MAC")){
-	        env = Paths.get(System.getProperty("user.home"),"Library","Application Support","Code Dx","Burp Extension");
-	    }
-	    else if (OS.contains("NUX")){
-	        env = Paths.get(System.getProperty("user.home"),".codedx","burp-extension");
-	    }
-	    else{
-	    	env = Paths.get(System.getProperty("user.dir"),"codedx","burp-extension");
-	    }
-	    
-	    env.toFile().mkdirs();
-	    
-		return new File(env.toFile(),"burp_codedx-plugin.xml");
+	
+	private File generateReport(IScanIssue[] issues){
+		File report = null;
+		try{
+		    String OS = System.getProperty("os.name").toUpperCase();
+		    Path env;
+		    if (OS.contains("WIN")){
+		        env = Paths.get(System.getenv("APPDATA"),"Code Dx","Burp Extension");
+		    }
+		    else if (OS.contains("MAC")){
+		        env = Paths.get(System.getProperty("user.home"),"Library","Application Support","Code Dx","Burp Extension");
+		    }
+		    else if (OS.contains("NUX")){
+		        env = Paths.get(System.getProperty("user.home"),".codedx","burp-extension");
+		    }
+		    else{
+		    	env = Paths.get(System.getProperty("user.dir"),"codedx","burp-extension");
+		    }
+		    env.toFile().mkdirs();
+		    report = new File(env.toFile(),"burp_codedx-plugin.xml");
+		} catch(Exception e){}
+		
+		callbacks.generateScanReport("XML", issues, report);
+		return report;
 	}
 	
-	
-	private HttpResponse sendData(File data, String urlStr) throws IOException{
+	private HttpResponse sendData(File data, String urlStr) throws IOException, GeneralSecurityException{
 		CloseableHttpClient client = burpExtender.getHttpClient();
 		HttpPost post = new HttpPost(urlStr);
 		post.setHeader("API-Key", burpExtender.getApiKey());
