@@ -42,7 +42,8 @@ public class ContextMenuFactory implements IContextMenuFactory{
 	
 	@Override
 	public List<JMenuItem> createMenuItems(IContextMenuInvocation invocation) {
-		if(invocation.getInvocationContext() == IContextMenuInvocation.CONTEXT_SCANNER_RESULTS){
+		if(invocation.getInvocationContext() == IContextMenuInvocation.CONTEXT_SCANNER_RESULTS ||
+				invocation.getInvocationContext() == IContextMenuInvocation.CONTEXT_TARGET_SITE_MAP_TREE){
 			List<JMenuItem> lst = new ArrayList<JMenuItem>();
 			JMenuItem export = new JMenuItem("Send to Code Dx");
 			export.addActionListener(new ExportActionListener(burpExtender, callbacks){				
