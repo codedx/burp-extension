@@ -22,6 +22,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -51,7 +53,7 @@ public class ExportActionListener implements ActionListener{
 	public void actionPerformed(ActionEvent e){
 		IScanIssue[] issues = getIssues();
 		if(issues != null && issues.length > 0){
-			File report = new File("burp_codedx-plugin.xml");
+			File report = getReportLocation();
 			callbacks.generateScanReport("XML", issues, report);
 			if(report != null && report.exists()){
 				try{
@@ -97,6 +99,28 @@ public class ExportActionListener implements ActionListener{
 		} catch (JSONException | IOException e){}
 		return msg;
 	}
+
+	private static File getReportLocation() {
+	    String OS = System.getProperty("os.name").toUpperCase();
+	    Path env;
+	    if (OS.contains("WIN")){
+	        env = Paths.get(System.getenv("APPDATA"),"Code Dx","Burp Extension");
+	    }
+	    else if (OS.contains("MAC")){
+	        env = Paths.get(System.getProperty("user.home"),"Library","Application Support","Code Dx","Burp Extension");
+	    }
+	    else if (OS.contains("NUX")){
+	        env = Paths.get(System.getProperty("user.home"),".codedx","burp-extension");
+	    }
+	    else{
+	    	env = Paths.get(System.getProperty("user.dir"),"codedx","burp-extension");
+	    }
+	    
+	    env.toFile().mkdirs();
+	    
+		return new File(env.toFile(),"burp_codedx-plugin.xml");
+	}
+	
 	
 	private HttpResponse sendData(File data, String urlStr) throws IOException{
 		CloseableHttpClient client = burpExtender.getHttpClient();
