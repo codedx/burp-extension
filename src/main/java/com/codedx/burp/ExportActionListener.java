@@ -153,9 +153,8 @@ public class ExportActionListener implements ActionListener{
 	
 	protected IScanIssue[] getIssues(){
 		String target = burpExtender.getTargetUrl();
-		String[] mismatched = getMismatchedTargets(target);
 		IScanIssue[] issues = callbacks.getScanIssues(burpExtender.getTargetUrl());
-		if(mismatched.length > 0){
+		if(hasMismatchedTargets(target)){
 			List<IScanIssue> lst = new ArrayList<IScanIssue>();
 			for(IScanIssue issue: issues){
 				if(issue.getHttpService().toString().equals(target))
@@ -167,17 +166,16 @@ public class ExportActionListener implements ActionListener{
 		return issues;
 	}
 	
-	// Returns an array of all targets that are prefixed by the selected target.
+	// Finds if any of the targets are prefixed by the selected target.
 	// This is required because the getScanIssues function uses the target url
 	// as a prefix. Any url that starts with the given prefix will match.
-	private String[] getMismatchedTargets(String selected){
-		List<String> targets = new ArrayList<String>();
+	private boolean hasMismatchedTargets(String selected){
 		for(String target : burpExtender.getTargetUrls()){
 			if(target != null && target.startsWith(selected)){
-				targets.add(target);
+				return true;
 			}
 		}
-		return targets.toArray(new String[targets.size()]);
+		return false;
 	}
 	
 	protected String getServer(){
