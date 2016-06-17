@@ -34,6 +34,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.security.GeneralSecurityException;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.TreeSet;
 
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -71,13 +75,16 @@ public class BurpExtender implements IBurpExtender, ITab {
 
 	private JTextField serverUrl;
 	private JTextField apiKey;
-	private JTextField targetUrl;
+	private JComboBox<String> targetUrl;
 	private JComboBox<NameValuePair> projectBox;
 	private NameValuePair[] projectArr = new BasicNameValuePair[0];
+	private String[] targetArr = new String[0];
 	
 	public static final String SERVER_KEY = "cdxServer";
 	public static final String API_KEY = "cdxApiKey";
 	public static final String TARGET_KEY = "cdxTarget";
+	
+	public static final String ALL_URL_STR = "All URLs";
 	
 	@Override
 	public void registerExtenderCallbacks(final IBurpExtenderCallbacks callbacks) {
@@ -129,10 +136,19 @@ public class BurpExtender implements IBurpExtender, ITab {
 		apiKey.addKeyListener(projectEnter);
 		apiKey.addFocusListener(new JTextFieldSettingFocusListener(BurpExtender.API_KEY, callbacks));
 		
-		targetUrl = labelTextField("Target URL: ", settings, callbacks.loadExtensionSetting(BurpExtender.TARGET_KEY));
-		targetUrl.addFocusListener(new JTextFieldSettingFocusListener(BurpExtender.TARGET_KEY, callbacks));
+		targetUrl = createComboBox("Target URL: ",settings, 3, new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				updateTargets();
+			}
+		});//createTargetComboBox(settings);//labelTextField("Target URL: ", settings, callbacks.loadExtensionSetting(BurpExtender.TARGET_KEY));
 
-		projectBox = createProjectComboBox(settings);
+		projectBox = createComboBox("Projects: ",settings, 4, new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				updateProjects();
+			}
+		});//createProjectComboBox(settings);
 		
 		GridBagConstraints setGBC = new GridBagConstraints();
 		setGBC.gridy = 3;
@@ -165,6 +181,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 		main.add(exportBtn, btnGBC);
 		
 		updateProjects(true);
+		updateTargets();
 		return main;
 	}
 	
@@ -185,7 +202,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 	private JTextField labelTextField(String label, Container cont, String base) {
 		createSettingsLabel(label, cont);
     	
-		JTextField textField = new JTextField(base, 30);
+		JTextField textField = new JTextField(base, 45);
 		callbacks.customizeUiComponent(textField);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 1;
@@ -194,10 +211,11 @@ public class BurpExtender implements IBurpExtender, ITab {
 		return textField;
 	}
 	
-	private JComboBox<NameValuePair> createProjectComboBox(Container cont){
-		createSettingsLabel("Project: ", cont);
+	private <T> JComboBox<T> createComboBox(String label, Container cont, int buttonY, ActionListener refreshListener){
+		createSettingsLabel(label, cont);
 		
-		JComboBox<NameValuePair> box = new JComboBox<NameValuePair>(projectArr);
+		JComboBox<T> box = new JComboBox<T>();
+		box.setMaximumRowCount(16);
 		callbacks.customizeUiComponent(box);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 1;
@@ -208,17 +226,11 @@ public class BurpExtender implements IBurpExtender, ITab {
 
 		JButton refresh = new JButton(icon);
 		refresh.setPreferredSize(new Dimension(icon.getIconHeight()+5,icon.getIconHeight()+5));
-		refresh.addActionListener(new ActionListener(){
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				updateProjects();
-			}
-			
-		});
+		refresh.addActionListener(refreshListener);
 		callbacks.customizeUiComponent(refresh);
 		gbc = new GridBagConstraints();
 		gbc.gridx = 2;
-		gbc.gridy = 4;
+		gbc.gridy = buttonY;
 		gbc.anchor = GridBagConstraints.WEST;
 		cont.add(refresh, gbc);
 		
@@ -249,7 +261,14 @@ public class BurpExtender implements IBurpExtender, ITab {
 	}
 
 	public String getTargetUrl() {
-		return targetUrl.getText();
+		String url = targetUrl.getSelectedItem().toString();
+		if(ALL_URL_STR.equals(url))
+			return null;
+		return url;
+	}
+	
+	public String[] getTargetUrls(){
+		return targetArr.clone();
 	}
 	
 	public NameValuePair getProject(){
@@ -264,7 +283,37 @@ public class BurpExtender implements IBurpExtender, ITab {
 		updateProjects(false);
 	}
 	
-	//TODO tag errors
+	public void updateTargets(){
+		if(targetUrl != null){
+			Set<String> urlSet = new TreeSet<String>(new Comparator<String>(){
+				@Override
+				public int compare(String s1, String s2) {
+					String s1Protocol = s1.substring(0, s1.indexOf("://"));
+					String s2Protocol = s2.substring(0, s2.indexOf("://"));
+					if(s1Protocol.equals(s2Protocol))
+						return s1.compareTo(s2);
+					String s1Host = s1.substring(s1.indexOf("://")+3);
+					String s2Host = s2.substring(s2.indexOf("://")+3);
+					if(s1Host.equals(s2Host))
+						return s1Protocol.compareTo(s2Protocol);
+					return s1Host.compareTo(s2Host);
+				}
+				
+			});
+			for(IHttpRequestResponse res : callbacks.getSiteMap(null)){
+				String site = res.getHttpService().toString();
+				urlSet.add(site);
+			}
+			
+			targetUrl.removeAllItems();
+			targetUrl.addItem(ALL_URL_STR);
+			targetArr = urlSet.toArray(new String[urlSet.size()]);
+			for(String url: targetArr)
+				targetUrl.addItem(url);
+			
+		}
+	}
+	
 	public void updateProjects(boolean ignoreMessages) {
 		CloseableHttpClient client = null;
 		BufferedReader rd = null;

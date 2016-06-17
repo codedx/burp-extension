@@ -25,6 +25,8 @@ import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -150,7 +152,32 @@ public class ExportActionListener implements ActionListener{
 	}
 	
 	protected IScanIssue[] getIssues(){
-		return callbacks.getScanIssues(burpExtender.getTargetUrl());
+		String target = burpExtender.getTargetUrl();
+		String[] mismatched = getMismatchedTargets(target);
+		IScanIssue[] issues = callbacks.getScanIssues(burpExtender.getTargetUrl());
+		if(mismatched.length > 0){
+			List<IScanIssue> lst = new ArrayList<IScanIssue>();
+			for(IScanIssue issue: issues){
+				if(issue.getHttpService().toString().equals(target))
+					lst.add(issue);
+			}
+			issues = lst.toArray(new IScanIssue[lst.size()]);
+		}
+		
+		return issues;
+	}
+	
+	// Returns an array of all targets that are prefixed by the selected target.
+	// This is required because the getScanIssues function uses the target url
+	// as a prefix. Any url that starts with the given prefix will match.
+	private String[] getMismatchedTargets(String selected){
+		List<String> targets = new ArrayList<String>();
+		for(String target : burpExtender.getTargetUrls()){
+			if(target != null && target.startsWith(selected)){
+				targets.add(target);
+			}
+		}
+		return targets.toArray(new String[targets.size()]);
 	}
 	
 	protected String getServer(){
