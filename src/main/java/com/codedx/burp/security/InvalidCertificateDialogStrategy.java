@@ -93,7 +93,7 @@ public class InvalidCertificateDialogStrategy implements InvalidCertificateStrat
 				message.add(fingerprint, gbc);
 				
 				gbc.gridx = 1;
-				message.add(new JLabel(toHexString(getSHA1(cert.getEncoded()), "")), gbc);
+				message.add(new JLabel(toHexString(getSHA1(cert.getEncoded()), " ")), gbc);
 			} catch (CertificateEncodingException e) {
 				// this shouldn't actually ever happen
 			}
