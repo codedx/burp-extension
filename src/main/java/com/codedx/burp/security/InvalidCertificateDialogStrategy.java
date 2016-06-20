@@ -86,14 +86,14 @@ public class InvalidCertificateDialogStrategy implements InvalidCertificateStrat
 			message.add(new JLabel(cert.getIssuerDN().toString()),gbc);
 			
 			try {
-				JLabel fingerprint = new JLabel("SHA-256 Fingerprint: ");
+				JLabel fingerprint = new JLabel("Thumbprint: ");
 				fingerprint.setFont(bold);
 				gbc.gridx = 0;
 				gbc.gridy += 1;
 				message.add(fingerprint, gbc);
 				
 				gbc.gridx = 1;
-				message.add(new JLabel(toHexString(getSHA256(cert.getEncoded()), "")), gbc);
+				message.add(new JLabel(toHexString(getSHA1(cert.getEncoded()), "")), gbc);
 			} catch (CertificateEncodingException e) {
 				// this shouldn't actually ever happen
 			}
@@ -135,9 +135,9 @@ public class InvalidCertificateDialogStrategy implements InvalidCertificateStrat
 		return CertificateAcceptance.REJECT;
 	}
 
-	public static byte[] getSHA256(byte[] input) {
+	public static byte[] getSHA1(byte[] input) {
 		try {
-			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			MessageDigest md = MessageDigest.getInstance("SHA-1");
 			md.reset();
 			return md.digest(input);
 		} catch (NoSuchAlgorithmException e) {
