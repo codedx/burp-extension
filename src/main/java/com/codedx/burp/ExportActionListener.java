@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -109,7 +110,7 @@ public class ExportActionListener implements ActionListener{
 	private File generateReport(IScanIssue[] issues){
 		File report = null;
 		try{
-		    String OS = System.getProperty("os.name").toUpperCase();
+		    String OS = System.getProperty("os.name").toUpperCase(Locale.getDefault());
 		    Path env;
 		    if (OS.contains("WIN")){
 		        env = Paths.get(System.getenv("APPDATA"),"Code Dx","Burp Extension");

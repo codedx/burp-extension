@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,6 +49,9 @@ public class SSLConnectionSocketFactoryFactory {
 	private static Map<String, SSLConnectionSocketFactory> factoriesByHost = new HashMap<>();
 	private static Map<String, ReloadableX509TrustManager> customTrustByHost = new HashMap<>();
 
+	private SSLConnectionSocketFactoryFactory(){
+	}
+	
 	/**
 	 * Returns a SSLConnectionSocketFactory for the given host. When a SSL
 	 * connection is created with the returned socket factory, if the server's
@@ -86,7 +90,7 @@ public class SSLConnectionSocketFactoryFactory {
 	 *         stored
 	 */
 	private static File getTrustStoreForHost(String host) {
-	    String OS = System.getProperty("os.name").toUpperCase();
+	    String OS = System.getProperty("os.name").toUpperCase(Locale.getDefault());
 	    Path env;
 	    if (OS.contains("WIN")){
 	        env = Paths.get(System.getenv("APPDATA"),"Code Dx","Burp Extension");

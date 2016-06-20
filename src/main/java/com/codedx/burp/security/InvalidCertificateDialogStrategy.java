@@ -16,7 +16,6 @@
 
 package com.codedx.burp.security;
 
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;

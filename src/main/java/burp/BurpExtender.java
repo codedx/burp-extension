@@ -36,7 +36,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -282,21 +281,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 	
 	public void updateTargets(){
 		if(targetUrl != null){
-			Set<String> urlSet = new TreeSet<String>(new Comparator<String>(){
-				@Override
-				public int compare(String s1, String s2) {
-					String s1Protocol = s1.substring(0, s1.indexOf("://"));
-					String s2Protocol = s2.substring(0, s2.indexOf("://"));
-					if(s1Protocol.equals(s2Protocol))
-						return s1.compareTo(s2);
-					String s1Host = s1.substring(s1.indexOf("://")+3);
-					String s2Host = s2.substring(s2.indexOf("://")+3);
-					if(s1Host.equals(s2Host))
-						return s1Protocol.compareTo(s2Protocol);
-					return s1Host.compareTo(s2Host);
-				}
-				
-			});
+			Set<String> urlSet = new TreeSet<String>(new UrlComparator());
 			for(IHttpRequestResponse res : callbacks.getSiteMap(null)){
 				String site = res.getHttpService().toString();
 				urlSet.add(site);
@@ -342,9 +327,8 @@ public class BurpExtender implements IBurpExtender, ITab {
 					String name = projects.getJSONObject(i).getString("name");
 					projectArr[i] = new ModifiedNameValuePair(name,Integer.toString(id));
 				}
-				if(projectArr.length == 0){
-					if(!ignoreMessages)
-						warn("No projects were found.");
+				if(projectArr.length == 0 && !ignoreMessages){
+					warn("No projects were found.");
 				}
 			}
 		} catch (JSONException | IOException e){
@@ -424,5 +408,23 @@ public class BurpExtender implements IBurpExtender, ITab {
 		public String toString(){
 			return getName() + " (id: " + getValue() + ")";
 		}
+	}
+	
+	private static final String URL_SPLITTER = "://";
+	
+	private static class UrlComparator implements Comparator<String>{
+		@Override
+		public int compare(String s1, String s2) {
+			String s1Protocol = s1.substring(0, s1.indexOf(URL_SPLITTER));
+			String s2Protocol = s2.substring(0, s2.indexOf(URL_SPLITTER));
+			if(s1Protocol.equals(s2Protocol))
+				return s1.compareTo(s2);
+			String s1Host = s1.substring(s1.indexOf(URL_SPLITTER)+3);
+			String s2Host = s2.substring(s2.indexOf(URL_SPLITTER)+3);
+			if(s1Host.equals(s2Host))
+				return s1Protocol.compareTo(s2Protocol);
+			return s1Host.compareTo(s2Host);
+		}
+		
 	}
 }
