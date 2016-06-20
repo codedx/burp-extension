@@ -32,6 +32,7 @@ import java.awt.event.KeyListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.util.Comparator;
@@ -141,14 +142,14 @@ public class BurpExtender implements IBurpExtender, ITab {
 			public void actionPerformed(ActionEvent e) {
 				updateTargets();
 			}
-		});//createTargetComboBox(settings);//labelTextField("Target URL: ", settings, callbacks.loadExtensionSetting(BurpExtender.TARGET_KEY));
+		});
 
 		projectBox = createComboBox("Projects: ",settings, 4, new ActionListener(){
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				updateProjects();
 			}
-		});//createProjectComboBox(settings);
+		});
 		
 		GridBagConstraints setGBC = new GridBagConstraints();
 		setGBC.gridy = 3;
@@ -279,10 +280,6 @@ public class BurpExtender implements IBurpExtender, ITab {
 		return projectArr.clone();
 	}
 	
-	public void updateProjects(){
-		updateProjects(false);
-	}
-	
 	public void updateTargets(){
 		if(targetUrl != null){
 			Set<String> urlSet = new TreeSet<String>(new Comparator<String>(){
@@ -314,43 +311,50 @@ public class BurpExtender implements IBurpExtender, ITab {
 		}
 	}
 	
+	public void updateProjects(){
+		updateProjects(false);
+	}
+	
 	public void updateProjects(boolean ignoreMessages) {
 		CloseableHttpClient client = null;
 		BufferedReader rd = null;
 		NameValuePair[] projectArr = new BasicNameValuePair[0];
 		try{
-			client = getHttpClient();
-			if(client == null)
-				ignoreMessages = true;
-			HttpGet get = new HttpGet(getServerUrl() + "/api/projects");
-			get.setHeader("API-Key", getApiKey());
-			HttpResponse response = client.execute(get);
-			rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
-	
-			StringBuffer result = new StringBuffer();
-			String line = "";
-			while ((line = rd.readLine()) != null) {
-				result.append(line);
-			}
-			
-			JSONObject obj = new JSONObject(result.toString());
-			JSONArray projects = obj.getJSONArray("projects");
-			
-			projectArr = new NameValuePair[projects.length()];
-			for(int i = 0; i < projectArr.length; i++){
-				int id = projects.getJSONObject(i).getInt("id");
-				String name = projects.getJSONObject(i).getString("name");
-				projectArr[i] = new ModifiedNameValuePair(name,Integer.toString(id));
-			}
-			if(projectArr.length == 0){
-				if(!ignoreMessages)
-					warn("No projects were found.");
+			client = getHttpClient(ignoreMessages);
+			if(client != null){
+				HttpGet get = new HttpGet(getServerUrl() + "/api/projects");
+				get.setHeader("API-Key", getApiKey());
+				HttpResponse response = client.execute(get);
+				rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent(), "UTF-8"));
+		
+				StringBuffer result = new StringBuffer();
+				String line = "";
+				while ((line = rd.readLine()) != null) {
+					result.append(line);
+				}
+				
+				JSONObject obj = new JSONObject(result.toString());
+				JSONArray projects = obj.getJSONArray("projects");
+				
+				projectArr = new NameValuePair[projects.length()];
+				for(int i = 0; i < projectArr.length; i++){
+					int id = projects.getJSONObject(i).getInt("id");
+					String name = projects.getJSONObject(i).getString("name");
+					projectArr[i] = new ModifiedNameValuePair(name,Integer.toString(id));
+				}
+				if(projectArr.length == 0){
+					if(!ignoreMessages)
+						warn("No projects were found.");
+				}
 			}
 		} catch (JSONException | IOException e){
 			if(!ignoreMessages)
 				error("An error occurred while trying to update the project list.\nCheck that the Server URL and API-Key are correct.");	
 		} catch (Exception e){
-			unknownError(e);
+			if(!ignoreMessages){
+				error("An unknown error occurred, please check the error log in the Extensions tab for more details.");
+				e.printStackTrace();
+			}
 		} finally {
 			if(client != null)
 				try {client.close();} catch (IOException e) {}
@@ -370,12 +374,21 @@ public class BurpExtender implements IBurpExtender, ITab {
 	}
 	
 	public CloseableHttpClient getHttpClient() throws IOException, GeneralSecurityException{
+		return getHttpClient(false);
+	}
+	
+	public CloseableHttpClient getHttpClient(boolean ignoreMessages) throws IOException, GeneralSecurityException{
 		try{
 			return HttpClientBuilder.create().setSSLSocketFactory(
 					SSLConnectionSocketFactoryFactory.getFactory(new URL(getServerUrl()).getHost(), this)).build();
+		} catch (MalformedURLException e){
+			if(!ignoreMessages)
+				error("The Server URL is not a valid URL. Please check that it is correct.");
 		} catch (Exception e){
-			error("An unknown error occurred while trying to establish the HTTP client.\nPlease check the error log in the Extensions tab for more details.");
-			e.printStackTrace();
+			if(!ignoreMessages){
+				error("An unknown error occurred while trying to establish the HTTP client.\nPlease check the error log in the Extensions tab for more details.");
+				e.printStackTrace();
+			}
 		}
 		return null;
 	}
@@ -390,11 +403,6 @@ public class BurpExtender implements IBurpExtender, ITab {
 
 	public void message(String message, String title) {
 		JOptionPane.showMessageDialog(getUiComponent(), message, title, JOptionPane.PLAIN_MESSAGE);
-	}
-	
-	public void unknownError(Exception e){
-		error("An unknown error occurred, please check the error log in the Extensions tab for more details.");
-		e.printStackTrace();
 	}
 	
 	@Override

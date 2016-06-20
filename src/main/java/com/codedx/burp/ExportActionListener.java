@@ -60,8 +60,12 @@ public class ExportActionListener implements ActionListener{
 			if(report != null && report.exists()){
 				try{
 					HttpResponse response = sendData(report, getServer());
-					StatusLine responseLine = response.getStatusLine();
-					int responseCode = responseLine.getStatusCode();
+					StatusLine responseLine = null;
+					int responseCode = -1;
+					if(response != null){
+						responseLine = response.getStatusLine();
+						responseCode = responseLine.getStatusCode();
+					}
 					if(responseCode == 202){
 						burpExtender.message("The report was successfully uploaded to Code Dx.", "Success");
 					} else if(responseCode == 400) {
@@ -72,7 +76,7 @@ public class ExportActionListener implements ActionListener{
 						burpExtender.error("The report could not be sent. The server returned Error 404: Not Found.\nThe Server URL may be wrong or the project may no longer exist.");
 					} else if(responseCode == 415) {
 						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe server returned Error 415: Unsupported Media Type" + getResponseError(response));
-					} else {
+					} else if(response != null) { // Don't give any errors if it's null, errors are handled higher up.
 						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe response code is: " + responseLine);
 					}
 				} catch (GeneralSecurityException | IOException e1){
@@ -129,6 +133,9 @@ public class ExportActionListener implements ActionListener{
 	
 	private HttpResponse sendData(File data, String urlStr) throws IOException, GeneralSecurityException{
 		CloseableHttpClient client = burpExtender.getHttpClient();
+		if(client == null)
+			return null;
+		
 		HttpPost post = new HttpPost(urlStr);
 		post.setHeader("API-Key", burpExtender.getApiKey());
 		
@@ -152,8 +159,8 @@ public class ExportActionListener implements ActionListener{
 	
 	protected IScanIssue[] getIssues(){
 		String target = burpExtender.getTargetUrl();
-		IScanIssue[] issues = callbacks.getScanIssues(burpExtender.getTargetUrl());
-		if(hasMismatchedTargets(target)){
+		IScanIssue[] issues = callbacks.getScanIssues(target);
+		if(target != null && hasMismatchedTargets(target)){
 			List<IScanIssue> lst = new ArrayList<IScanIssue>();
 			for(IScanIssue issue: issues){
 				if(issue.getHttpService().toString().equals(target))
@@ -167,10 +174,11 @@ public class ExportActionListener implements ActionListener{
 	
 	// Finds if any of the targets are prefixed by the selected target.
 	// This is required because the getScanIssues function uses the target url
-	// as a prefix. Any url that starts with the given prefix will match.
+	// as a prefix. Any url that starts with the given prefix will match. If
+	// any URLs match, they need to be filtered.
 	private boolean hasMismatchedTargets(String selected){
 		for(String target : burpExtender.getTargetUrls()){
-			if(target != null && target.startsWith(selected)){
+			if(target != null && selected != null && target.startsWith(selected)){
 				return true;
 			}
 		}
