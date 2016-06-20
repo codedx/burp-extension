@@ -50,16 +50,20 @@ public class ContextMenuFactory implements IContextMenuFactory{
 				private String server;
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					server = null;
-					burpExtender.updateProjects();
-					NameValuePair[] projects = burpExtender.getProjects();
-					if(projects.length > 0){
-						Object sel = JOptionPane.showInputDialog(null, "Select a Project", "Send to Code Dx", 
-								JOptionPane.QUESTION_MESSAGE, null, projects, projects[0]);
-						if(sel != null){
-							server = burpExtender.getServerUrl() + "/api/projects/" + ((NameValuePair)sel).getValue() + "/analysis";
-							super.actionPerformed(e);
+					if(!"".equals(burpExtender.getApiKey()) && !"".equals(burpExtender.getServerUrl())){
+						server = null;
+						burpExtender.updateProjects();
+						NameValuePair[] projects = burpExtender.getProjects();
+						if(projects.length > 0){
+							Object sel = JOptionPane.showInputDialog(null, "Select a Project", "Send to Code Dx", 
+									JOptionPane.QUESTION_MESSAGE, null, projects, projects[0]);
+							if(sel != null){
+								server = burpExtender.getServerUrl() + "/api/projects/" + ((NameValuePair)sel).getValue() + "/analysis";
+								super.actionPerformed(e);
+							}
 						}
+					} else {
+						burpExtender.warn("The Server URL or API Key fields are not filled out. The report will not be sent.");
 					}
 				}
 				@Override

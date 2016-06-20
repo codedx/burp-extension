@@ -53,7 +53,6 @@ public class ExportActionListener implements ActionListener{
 		this.callbacks = callbacks;
 	}
 	
-	//TODO
 	public void actionPerformed(ActionEvent e){
 		IScanIssue[] issues = getIssues();
 		if(issues != null && issues.length > 0){
