@@ -47,18 +47,21 @@ public class ContextMenuFactory implements IContextMenuFactory{
 			List<JMenuItem> lst = new ArrayList<JMenuItem>();
 			JMenuItem export = new JMenuItem("Send to Code Dx");
 			export.addActionListener(new ExportActionListener(burpExtender, callbacks){
-				private String server;
+				private String project;
 				@Override
 				public void actionPerformed(ActionEvent e) {
 					if(!"".equals(burpExtender.getApiKey()) && !"".equals(burpExtender.getServerUrl())){
-						server = null;
+						project = null;
 						burpExtender.updateProjects();
 						NameValuePair[] projects = burpExtender.getProjects();
+						int projectIndex = burpExtender.getSavedProjectIndex();
+						if(projectIndex == -1)
+							projectIndex = 0;
 						if(projects.length > 0){
 							Object sel = JOptionPane.showInputDialog(null, "Select a Project", "Send to Code Dx", 
-									JOptionPane.QUESTION_MESSAGE, null, projects, projects[0]);
+									JOptionPane.QUESTION_MESSAGE, null, projects, projects[projectIndex]);
 							if(sel != null){
-								server = burpExtender.getServerUrl() + "/api/projects/" + ((NameValuePair)sel).getValue() + "/analysis";
+								project = ((NameValuePair)sel).getValue();
 								super.actionPerformed(e);
 							}
 						}
@@ -71,8 +74,8 @@ public class ContextMenuFactory implements IContextMenuFactory{
 					return invocation.getSelectedIssues();
 				}
 				@Override
-				protected String getServer(){
-					return server;
+				protected String getProject(){
+					return project;
 				}
 			});
 			lst.add(export);

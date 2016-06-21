@@ -44,7 +44,7 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import burp.BurpExtender;
 
 
-public class SSLConnectionSocketFactoryFactory {
+public final class SSLConnectionSocketFactoryFactory {
 
 	private static Map<String, SSLConnectionSocketFactory> factoriesByHost = new HashMap<>();
 	private static Map<String, ReloadableX509TrustManager> customTrustByHost = new HashMap<>();

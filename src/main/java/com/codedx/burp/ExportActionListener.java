@@ -56,6 +56,7 @@ public class ExportActionListener implements ActionListener{
 	
 	public void actionPerformed(ActionEvent e){
 		IScanIssue[] issues = getIssues();
+		callbacks.saveExtensionSetting(BurpExtender.PROJECT_KEY, getProject());
 		if(issues != null && issues.length > 0){
 			File report = generateReport(issues);
 			if(report != null && report.exists()){
@@ -185,8 +186,12 @@ public class ExportActionListener implements ActionListener{
 		}
 		return false;
 	}
+
+	protected String getProject(){
+		return burpExtender.getProject().getValue();
+	}
 	
-	protected String getServer(){
-		return burpExtender.getServerUrl() + "/api/projects/" + burpExtender.getProject().getValue() + "/analysis";
+	private String getServer(){
+		return burpExtender.getServerUrl() + "/api/projects/" + getProject() + "/analysis";
 	}
 }

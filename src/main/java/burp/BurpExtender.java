@@ -83,6 +83,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 	public static final String SERVER_KEY = "cdxServer";
 	public static final String API_KEY = "cdxApiKey";
 	public static final String TARGET_KEY = "cdxTarget";
+	public static final String PROJECT_KEY = "cdxProject";
 	
 	public static final String ALL_URL_STR = "All URLs";
 	
@@ -182,7 +183,22 @@ public class BurpExtender implements IBurpExtender, ITab {
 		
 		updateProjects(true);
 		updateTargets();
+		int savedProject = getSavedProjectIndex();
+		if(savedProject != -1)
+			projectBox.setSelectedIndex(savedProject);
 		return main;
+	}
+	
+	public int getSavedProjectIndex(){
+		String activeProject = callbacks.loadExtensionSetting(PROJECT_KEY);
+		if(projectBox.getItemCount() > 0 && activeProject != null){
+			for(int i = 0; i < projectBox.getItemCount(); i++){
+				if(activeProject.equals(projectBox.getItemAt(i).getValue())){
+					return i;
+				}
+			}
+		}
+		return -1;
 	}
 	
 	private void createTitle(String text, Container cont) {
