@@ -16,12 +16,14 @@
  
  package com.codedx.burp;
 
+import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import org.apache.http.NameValuePair;
 
@@ -46,42 +48,67 @@ public class ContextMenuFactory implements IContextMenuFactory{
 		if(invocation.getInvocationContext() == IContextMenuInvocation.CONTEXT_SCANNER_RESULTS){
 			List<JMenuItem> lst = new ArrayList<JMenuItem>();
 			JMenuItem export = new JMenuItem("Send to Code Dx");
-			export.addActionListener(new ExportActionListener(burpExtender, callbacks){
-				private String project;
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					if(!"".equals(burpExtender.getApiKey()) && !"".equals(burpExtender.getServerUrl())){
-						project = null;
-						burpExtender.updateProjects();
-						NameValuePair[] projects = burpExtender.getProjects();
-						int projectIndex = burpExtender.getSavedProjectIndex();
-						if(projectIndex == -1)
-							projectIndex = 0;
-						if(projects.length > 0){
-							Object sel = JOptionPane.showInputDialog(null, "Select a Project", "Send to Code Dx", 
-									JOptionPane.QUESTION_MESSAGE, null, projects, projects[projectIndex]);
-							if(sel != null){
-								project = ((NameValuePair)sel).getValue();
-								super.actionPerformed(e);
-							}
-						}
-					} else {
-						burpExtender.warn("The Server URL or API Key fields are not filled out. The report will not be sent.");
-					}
-				}
-				@Override
-				protected IScanIssue[] getIssues(){
-					return invocation.getSelectedIssues();
-				}
-				@Override
-				protected String getProject(){
-					return project;
-				}
-			});
+			export.addActionListener(new ContextMenuActionListener(burpExtender, callbacks, invocation));
 			lst.add(export);
 			return lst;
 		}
 		return null;
 	}
-
+	
+	private class ContextMenuActionListener extends ExportActionListener {
+		private String project;
+		private IContextMenuInvocation invocation;
+		
+		public ContextMenuActionListener(BurpExtender burpExtender, IBurpExtenderCallbacks callbacks,
+				IContextMenuInvocation invocation) {
+			super(burpExtender, callbacks);
+			this.invocation = invocation;
+		}
+		
+		@Override
+		public void actionPerformed(ActionEvent e) {					
+			if(!"".equals(burpExtender.getApiKey()) && !"".equals(burpExtender.getServerUrl())){
+				project = null;
+				Thread t = new Thread(){
+					public void run() {
+						burpExtender.getUiComponent().getParent().setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+						burpExtender.updateProjects();
+						burpExtender.getUiComponent().getParent().setCursor(Cursor.getDefaultCursor());
+						openDialog(e);
+					}
+				};
+				t.start();
+			} else {
+				burpExtender.warn("The Server URL or API Key fields are not filled out.");
+			}
+		}
+		
+		private void openDialog(ActionEvent e){
+			SwingUtilities.invokeLater(new Runnable(){
+				public void run() {
+					NameValuePair[] projects = burpExtender.getProjects();
+					int projectIndex = burpExtender.getSavedProjectIndex();
+					if(projectIndex == -1)
+						projectIndex = 0;
+					if(projects.length > 0){
+						Object sel = JOptionPane.showInputDialog(null, "Select a Project", "Send to Code Dx", 
+								JOptionPane.QUESTION_MESSAGE, null, projects, projects[projectIndex]);
+						if(sel != null){
+							project = ((NameValuePair)sel).getValue();
+							ContextMenuActionListener.super.actionPerformed(e);
+						}
+					}
+				}
+			});
+		}
+		
+		@Override
+		protected IScanIssue[] getIssues(){
+			return invocation.getSelectedIssues();
+		}
+		@Override
+		protected String getProject(){
+			return project;
+		}
+	}
 }

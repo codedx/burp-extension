@@ -32,14 +32,17 @@ import java.awt.event.KeyListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.GeneralSecurityException;
+import java.nio.charset.Charset;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeSet;
 
 import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -47,12 +50,16 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -66,9 +73,6 @@ import com.codedx.burp.ExportActionListener;
 import com.codedx.burp.JTextFieldSettingFocusListener;
 import com.codedx.burp.security.SSLConnectionSocketFactoryFactory;
 
-import jiconfont.icons.FontAwesome;
-import jiconfont.swing.IconFontSwing;
-
 public class BurpExtender implements IBurpExtender, ITab {
 	public IBurpExtenderCallbacks callbacks;
 	private JScrollPane pane;
@@ -77,8 +81,16 @@ public class BurpExtender implements IBurpExtender, ITab {
 	private JTextField apiKey;
 	private JComboBox<String> targetUrl;
 	private JComboBox<NameValuePair> projectBox;
-	private NameValuePair[] projectArr = new BasicNameValuePair[0];
+	private JButton projectRefresh;
+	
 	private String[] targetArr = new String[0];
+	private NameValuePair[] projectArr = new BasicNameValuePair[0];
+
+	private boolean updating = false;
+	private ButtonAnimationThread refreshAnimation;
+	private static final Icon[] refreshSpinner = new ImageIcon[12];
+	
+	private static final int TIMEOUT = 5000;
 	
 	public static final String SERVER_KEY = "cdxServer";
 	public static final String API_KEY = "cdxApiKey";
@@ -86,6 +98,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 	public static final String PROJECT_KEY = "cdxProject";
 	
 	public static final String ALL_URL_STR = "All URLs";
+	
 	
 	@Override
 	public void registerExtenderCallbacks(final IBurpExtenderCallbacks callbacks) {
@@ -96,19 +109,45 @@ public class BurpExtender implements IBurpExtender, ITab {
 		
 		// set our extension name
 		callbacks.setExtensionName("Code Dx");
-
-		IconFontSwing.register(FontAwesome.getIconFont());
+		
+		for(int i = 0; i < refreshSpinner.length; i++)
+			refreshSpinner[i] = new ImageIcon(BurpExtender.class.getResource("/"+i+".png"));
 		
 		// create our UI
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
 				pane = new JScrollPane(createMainPanel());
-
+				refreshAnimation = new ButtonAnimationThread(projectRefresh, refreshSpinner);
+				
 				callbacks.customizeUiComponent(pane);
 
 				// add the custom tab to Burp's UI
 				callbacks.addSuiteTab(BurpExtender.this);
+				
+				// add listener to update projects list when Code Dx tab selected
+				Component parent = pane.getParent();
+				if(parent instanceof JTabbedPane){
+					JTabbedPane tabs = (JTabbedPane) parent;
+					tabs.addChangeListener(new ChangeListener(){
+						@Override
+						public void stateChanged(ChangeEvent arg0) {
+							if (pane == tabs.getSelectedComponent() && !updating
+									&& !"".equals(serverUrl.getText()) && !"".equals(apiKey.getText())) {
+								Thread updateThread = new Thread() {
+									public void run(){
+										updateProjects(true);
+										int activeProject = getSavedProjectIndex();
+										if(activeProject != -1)
+											projectBox.setSelectedIndex(activeProject);
+									}
+								};
+								updateThread.start();
+							}
+						}
+						
+					});
+				}
 			}
 		});
 	}
@@ -137,19 +176,28 @@ public class BurpExtender implements IBurpExtender, ITab {
 		apiKey.addKeyListener(projectEnter);
 		apiKey.addFocusListener(new JTextFieldSettingFocusListener(BurpExtender.API_KEY, callbacks));
 		
-		targetUrl = createComboBox("Target URL: ",settings, 3, new ActionListener(){
+		JButton targetRefresh = new JButton();
+		targetRefresh.addActionListener(new ActionListener(){
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				updateTargets();
 			}
 		});
+		targetUrl = createComboBox("Target URL: ",settings, 3, targetRefresh);
 
-		projectBox = createComboBox("Projects: ",settings, 4, new ActionListener(){
+		projectRefresh = new JButton();
+		projectRefresh.addActionListener(new ActionListener(){
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				updateProjects();
+				Thread updateThread = new Thread() {
+					public void run(){
+						updateProjects();
+					}
+				};
+				updateThread.start();
 			}
 		});
+		projectBox = createComboBox("Projects: ",settings, 4, projectRefresh);
 		
 		GridBagConstraints setGBC = new GridBagConstraints();
 		setGBC.gridy = 3;
@@ -181,24 +229,8 @@ public class BurpExtender implements IBurpExtender, ITab {
 		btnGBC.anchor = GridBagConstraints.NORTHWEST;
 		main.add(exportBtn, btnGBC);
 		
-		updateProjects(true);
 		updateTargets();
-		int savedProject = getSavedProjectIndex();
-		if(savedProject != -1)
-			projectBox.setSelectedIndex(savedProject);
 		return main;
-	}
-	
-	public int getSavedProjectIndex(){
-		String activeProject = callbacks.loadExtensionSetting(PROJECT_KEY);
-		if(projectBox.getItemCount() > 0 && activeProject != null){
-			for(int i = 0; i < projectBox.getItemCount(); i++){
-				if(activeProject.equals(projectBox.getItemAt(i).getValue())){
-					return i;
-				}
-			}
-		}
-		return -1;
 	}
 	
 	private void createTitle(String text, Container cont) {
@@ -227,7 +259,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 		return textField;
 	}
 	
-	private <T> JComboBox<T> createComboBox(String label, Container cont, int buttonY, ActionListener refreshListener){
+	private <T> JComboBox<T> createComboBox(String label, Container cont, int buttonY, JButton button){
 		createSettingsLabel(label, cont);
 		
 		JComboBox<T> box = new JComboBox<T>();
@@ -238,17 +270,14 @@ public class BurpExtender implements IBurpExtender, ITab {
 		gbc.fill = GridBagConstraints.HORIZONTAL;
 		cont.add(box, gbc);
 		
-		Icon icon = IconFontSwing.buildIcon(FontAwesome.REFRESH, 18, new Color(128, 128, 128));
-
-		JButton refresh = new JButton(icon);
-		refresh.setPreferredSize(new Dimension(icon.getIconHeight()+5,icon.getIconHeight()+5));
-		refresh.addActionListener(refreshListener);
-		callbacks.customizeUiComponent(refresh);
+		button.setIcon(refreshSpinner[0]);
+		button.setPreferredSize(new Dimension(refreshSpinner[0].getIconHeight()+4,refreshSpinner[0].getIconHeight()+4));
+		callbacks.customizeUiComponent(button);
 		gbc = new GridBagConstraints();
 		gbc.gridx = 2;
 		gbc.gridy = buttonY;
 		gbc.anchor = GridBagConstraints.WEST;
-		cont.add(refresh, gbc);
+		cont.add(button, gbc);
 		
 		return box;
 	}
@@ -295,6 +324,18 @@ public class BurpExtender implements IBurpExtender, ITab {
 		return projectArr.clone();
 	}
 	
+	public int getSavedProjectIndex(){
+		String activeProject = callbacks.loadExtensionSetting(PROJECT_KEY);
+		if(projectBox.getItemCount() > 0 && activeProject != null){
+			for(int i = 0; i < projectBox.getItemCount(); i++){
+				if(activeProject.equals(projectBox.getItemAt(i).getValue())){
+					return i;
+				}
+			}
+		}
+		return -1;
+	}
+	
 	public void updateTargets(){
 		if(targetUrl != null){
 			Set<String> urlSet = new TreeSet<String>(new UrlComparator());
@@ -316,7 +357,13 @@ public class BurpExtender implements IBurpExtender, ITab {
 		updateProjects(false);
 	}
 	
-	public void updateProjects(boolean ignoreMessages) {
+	public void updateProjects(boolean ignoreMessages) {	
+		if(!refreshAnimation.isRunning()){
+			refreshAnimation = new ButtonAnimationThread(projectRefresh, refreshSpinner);
+			refreshAnimation.start();
+		}
+		updating = true;
+
 		CloseableHttpClient client = null;
 		BufferedReader rd = null;
 		NameValuePair[] projectArr = new BasicNameValuePair[0];
@@ -349,11 +396,10 @@ public class BurpExtender implements IBurpExtender, ITab {
 			}
 		} catch (JSONException | IOException e){
 			if(!ignoreMessages)
-				error("An error occurred while trying to update the project list.\nCheck that the Server URL and API-Key are correct.");	
+				error("An error occurred while trying to update the project list.\nCheck that the Server URL and API-Key are correct.");
 		} catch (Exception e){
 			if(!ignoreMessages){
-				error("An unknown error occurred, please check the error log in the Extensions tab for more details.");
-				e.printStackTrace();
+				error("An unknown error occurred while updating the project list.", e);
 			}
 		} finally {
 			if(client != null)
@@ -361,8 +407,16 @@ public class BurpExtender implements IBurpExtender, ITab {
 			if(rd != null)
 				try {rd.close();} catch (IOException e) {}
 		}
+		
 		this.projectArr = projectArr;
-		updateProjectComboBox();
+		SwingUtilities.invokeLater(new Runnable(){
+			@Override
+			public void run() {
+				updateProjectComboBox();
+				updating = false;
+			}
+		});
+		refreshAnimation.end();
 	}
 	
 	public void updateProjectComboBox(){
@@ -373,31 +427,50 @@ public class BurpExtender implements IBurpExtender, ITab {
 		}
 	}
 	
-	public CloseableHttpClient getHttpClient() throws IOException, GeneralSecurityException{
+	public CloseableHttpClient getHttpClient(){
 		return getHttpClient(false);
 	}
 	
-	public CloseableHttpClient getHttpClient(boolean ignoreMessages) throws IOException, GeneralSecurityException{
+	public CloseableHttpClient getHttpClient(boolean ignoreMessages){
 		try{
-			return HttpClientBuilder.create().setSSLSocketFactory(
-					SSLConnectionSocketFactoryFactory.getFactory(new URL(getServerUrl()).getHost(), this)).build();
+			RequestConfig config = RequestConfig.custom().setConnectTimeout(TIMEOUT).setSocketTimeout(TIMEOUT)
+					.setConnectionRequestTimeout(TIMEOUT).build();
+			return HttpClientBuilder.create()
+					.setSSLSocketFactory(SSLConnectionSocketFactoryFactory.getFactory(new URL(getServerUrl()).getHost(), this))
+					.setDefaultRequestConfig(config).build();
 		} catch (MalformedURLException e){
 			if(!ignoreMessages)
 				error("The Server URL is not a valid URL. Please check that it is correct.");
 		} catch (Exception e){
 			if(!ignoreMessages){
-				error("An unknown error occurred while trying to establish the HTTP client.\nPlease check the error log in the Extensions tab for more details.");
-				e.printStackTrace();
+				error("An unknown error occurred while trying to establish the HTTP client.", e);
 			}
 		}
 		return null;
 	}
 	
-	public void error(String message) {
+	public void error(String message){
+		error(message, null);
+	}
+	
+	public void error(String message, Throwable t) {
+		if(refreshAnimation.isRunning())
+			refreshAnimation.end();
 		JOptionPane.showMessageDialog(getUiComponent(), message, "Error", JOptionPane.ERROR_MESSAGE);
+		
+		if(t != null){
+			StringWriter err = new StringWriter();
+			t.printStackTrace(new PrintWriter(err));
+			try {
+				err.write("\nCheck the error log in the Extensions tab for more details.");
+				callbacks.getStderr().write(err.toString().getBytes(Charset.forName("UTF-8")));
+			} catch (IOException e) {}
+		}
 	}
 	
 	public void warn(String message) {
+		if(refreshAnimation.isRunning())
+			refreshAnimation.end();
 		JOptionPane.showMessageDialog(getUiComponent(), message, "Warning", JOptionPane.WARNING_MESSAGE);
 	}
 
@@ -441,6 +514,37 @@ public class BurpExtender implements IBurpExtender, ITab {
 				return s1Protocol.compareTo(s2Protocol);
 			return s1Host.compareTo(s2Host);
 		}
+	}
+	
+	private static class ButtonAnimationThread extends Thread{
+		private volatile boolean running = true;
+		private int next = 1;
+		private JButton button;
+		private Icon[] icons;
 		
+		public ButtonAnimationThread(JButton button, Icon[] icons){
+			this.button = button;
+			this.icons = icons;
+		}
+		
+		@Override
+		public void run() {
+			while(running || next < icons.length - 1){
+				button.setIcon(icons[next]);
+				next = (next == icons.length - 1) ? 0 : next + 1;
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {}
+			}
+			button.setIcon(icons[0]);
+		}
+		
+		public boolean isRunning() {
+			return running;
+		}
+		
+		public void end() {
+			running = false;
+		}
 	}
 }

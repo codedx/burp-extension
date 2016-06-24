@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -60,30 +59,35 @@ public class ExportActionListener implements ActionListener{
 		if(issues != null && issues.length > 0){
 			File report = generateReport(issues);
 			if(report != null && report.exists()){
-				try{
-					HttpResponse response = sendData(report, getServer());
-					StatusLine responseLine = null;
-					int responseCode = -1;
-					if(response != null){
-						responseLine = response.getStatusLine();
-						responseCode = responseLine.getStatusCode();
+				Thread uploadThread = new Thread(){
+					public void run() {
+						try{
+							HttpResponse response = sendData(report, getServer());
+							StatusLine responseLine = null;
+							int responseCode = -1;
+							if(response != null){
+								responseLine = response.getStatusLine();
+								responseCode = responseLine.getStatusCode();
+							}
+							if(responseCode == 202){
+								burpExtender.message("The report was successfully uploaded to Code Dx.", "Success");
+							} else if(responseCode == 400) {
+								burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
+							} else if(responseCode == 403){
+								burpExtender.error("The report could not be sent. The server returned Error 403: Forbidden.\nThe API Key may be incorrect or have insufficient permissions for this project.");
+							} else if(responseCode == 404){
+								burpExtender.error("The report could not be sent. The server returned Error 404: Not Found.\nThe Server URL may be wrong or the project may no longer exist.");
+							} else if(responseCode == 415) {
+								burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe server returned Error 415: Unsupported Media Type" + getResponseError(response));
+							} else if(response != null) { // Don't give any errors if it's null, errors are handled higher up.
+								burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe response code is: " + responseLine);
+							}
+						} catch (IOException e1){
+							burpExtender.error("An unexpected error occurred and the report could not be sent.", e1);
+						}
 					}
-					if(responseCode == 202){
-						burpExtender.message("The report was successfully uploaded to Code Dx.", "Success");
-					} else if(responseCode == 400) {
-						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe server returned Error 400: Bad Request" + getResponseError(response));
-					} else if(responseCode == 403){
-						burpExtender.error("The report could not be sent. The server returned Error 403: Forbidden.\nThe API Key may be incorrect or have insufficient permissions for this project.");
-					} else if(responseCode == 404){
-						burpExtender.error("The report could not be sent. The server returned Error 404: Not Found.\nThe Server URL may be wrong or the project may no longer exist.");
-					} else if(responseCode == 415) {
-						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe server returned Error 415: Unsupported Media Type" + getResponseError(response));
-					} else if(response != null) { // Don't give any errors if it's null, errors are handled higher up.
-						burpExtender.error("An unexpected error occurred and the report could not be sent.\nThe response code is: " + responseLine);
-					}
-				} catch (GeneralSecurityException | IOException e1){
-					burpExtender.error("An unexpected error occurred and the report could not be sent.");
-				}
+				};
+				uploadThread.start();
 				report.delete();
 			} else {
 				burpExtender.error("The report file could not be created.");
@@ -133,7 +137,7 @@ public class ExportActionListener implements ActionListener{
 		return report;
 	}
 	
-	private HttpResponse sendData(File data, String urlStr) throws IOException, GeneralSecurityException{
+	private HttpResponse sendData(File data, String urlStr) throws IOException{
 		CloseableHttpClient client = burpExtender.getHttpClient();
 		if(client == null)
 			return null;
