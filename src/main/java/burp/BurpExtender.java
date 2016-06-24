@@ -136,6 +136,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 									&& !"".equals(serverUrl.getText()) && !"".equals(apiKey.getText())) {
 								Thread updateThread = new Thread() {
 									public void run(){
+										updateTargets();
 										updateProjects(true);
 										int activeProject = getSavedProjectIndex();
 										if(activeProject != -1)
