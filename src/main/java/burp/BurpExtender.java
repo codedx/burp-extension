@@ -457,16 +457,15 @@ public class BurpExtender implements IBurpExtender, ITab {
 	public void error(String message, Throwable t) {
 		if(refreshAnimation.isRunning())
 			refreshAnimation.end();
-		JOptionPane.showMessageDialog(getUiComponent(), message, "Error", JOptionPane.ERROR_MESSAGE);
-		
 		if(t != null){
 			StringWriter err = new StringWriter();
 			t.printStackTrace(new PrintWriter(err));
 			try {
-				err.write("\nCheck the error log in the Extensions tab for more details.");
 				callbacks.getStderr().write(err.toString().getBytes(Charset.forName("UTF-8")));
+				message += "\nCheck the error log in the Extensions tab for more details.";
 			} catch (IOException e) {}
 		}
+		JOptionPane.showMessageDialog(getUiComponent(), message, "Error", JOptionPane.ERROR_MESSAGE);
 	}
 	
 	public void warn(String message) {
