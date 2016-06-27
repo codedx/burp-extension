@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -85,10 +86,10 @@ public class ExportActionListener implements ActionListener{
 						} catch (IOException e1){
 							burpExtender.error("An unexpected error occurred and the report could not be sent.", e1);
 						}
+						report.delete();
 					}
 				};
 				uploadThread.start();
-				report.delete();
 			} else {
 				burpExtender.error("The report file could not be created.");
 			}
@@ -131,8 +132,7 @@ public class ExportActionListener implements ActionListener{
 		    }
 		    env.toFile().mkdirs();
 		    report = new File(env.toFile(),"burp_codedx-plugin.xml");
-		} catch(Exception e){}
-		
+		} catch(SecurityException | InvalidPathException | UnsupportedOperationException e){}
 		callbacks.generateScanReport("XML", issues, report);
 		return report;
 	}
