@@ -116,22 +116,22 @@ public class ExportActionListener implements ActionListener{
 	private File generateReport(IScanIssue[] issues){
 		File report = null;
 		try{
-		    String OS = System.getProperty("os.name").toUpperCase(Locale.getDefault());
-		    Path env;
-		    if (OS.contains("WIN")){
-		        env = Paths.get(System.getenv("APPDATA"),"Code Dx","Burp Extension");
-		    }
-		    else if (OS.contains("MAC")){
-		        env = Paths.get(System.getProperty("user.home"),"Library","Application Support","Code Dx","Burp Extension");
-		    }
-		    else if (OS.contains("NUX")){
-		        env = Paths.get(System.getProperty("user.home"),".codedx","burp-extension");
-		    }
-		    else{
-		    	env = Paths.get(System.getProperty("user.dir"),"codedx","burp-extension");
-		    }
-		    env.toFile().mkdirs();
-		    report = new File(env.toFile(),"burp_codedx-plugin.xml");
+			String OS = System.getProperty("os.name").toUpperCase(Locale.getDefault());
+			Path env;
+			if (OS.contains("WIN")){
+				env = Paths.get(System.getenv("APPDATA"),"Code Dx","Burp Extension");
+			}
+			else if (OS.contains("MAC")){
+				env = Paths.get(System.getProperty("user.home"),"Library","Application Support","Code Dx","Burp Extension");
+			}
+			else if (OS.contains("NUX")){
+				env = Paths.get(System.getProperty("user.home"),".codedx","burp-extension");
+			}
+			else{
+				env = Paths.get(System.getProperty("user.dir"),"codedx","burp-extension");
+			}
+			env.toFile().mkdirs();
+			report = new File(env.toFile(),"burp_codedx-plugin.xml");
 		} catch(SecurityException | InvalidPathException | UnsupportedOperationException e){}
 		callbacks.generateScanReport("XML", issues, report);
 		return report;

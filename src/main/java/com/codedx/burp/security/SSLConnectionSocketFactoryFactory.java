@@ -90,21 +90,21 @@ public final class SSLConnectionSocketFactoryFactory {
 	 *         stored
 	 */
 	private static File getTrustStoreForHost(String host) {
-	    String OS = System.getProperty("os.name").toUpperCase(Locale.getDefault());
-	    Path env;
-	    if (OS.contains("WIN")){
-	        env = Paths.get(System.getenv("APPDATA"),"Code Dx","Burp Extension");
-	    }
-	    else if (OS.contains("MAC")){
-	        env = Paths.get(System.getProperty("user.home"),"Library","Application Support","Code Dx","Burp Extension");
-	    }
-	    else if (OS.contains("NUX")){
-	        env = Paths.get(System.getProperty("user.home"),".codedx","burp-extension");
-	    }
-	    else{
-	    	env = Paths.get(System.getProperty("user.dir"),"codedx","burp-extension");
-	    }
-	    
+		String OS = System.getProperty("os.name").toUpperCase(Locale.getDefault());
+		Path env;
+		if (OS.contains("WIN")){
+			env = Paths.get(System.getenv("APPDATA"),"Code Dx","Burp Extension");
+		}
+		else if (OS.contains("MAC")){
+			env = Paths.get(System.getProperty("user.home"),"Library","Application Support","Code Dx","Burp Extension");
+		}
+		else if (OS.contains("NUX")){
+			env = Paths.get(System.getProperty("user.home"),".codedx","burp-extension");
+		}
+		else{
+			env = Paths.get(System.getProperty("user.dir"),"codedx","burp-extension");
+		}
+		
 		File keystoreDir = new File(env.toFile(),".usertrust");
 		keystoreDir.mkdirs();
 

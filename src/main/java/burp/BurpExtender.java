@@ -250,7 +250,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 
 	private JTextField labelTextField(String label, Container cont, String base) {
 		createSettingsLabel(label, cont);
-    	
+		
 		JTextField textField = new JTextField(base, 45);
 		callbacks.customizeUiComponent(textField);
 		GridBagConstraints gbc = new GridBagConstraints();
