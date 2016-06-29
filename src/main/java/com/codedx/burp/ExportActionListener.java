@@ -131,7 +131,7 @@ public class ExportActionListener implements ActionListener{
 				env = Paths.get(System.getProperty("user.dir"),"codedx","burp-extension");
 			}
 			env.toFile().mkdirs();
-			report = new File(env.toFile(),"burp_codedx-plugin.xml");
+			report = new File(env.toFile(),"Burp.xml");
 		} catch(SecurityException | InvalidPathException | UnsupportedOperationException e){}
 		callbacks.generateScanReport("XML", issues, report);
 		return report;
