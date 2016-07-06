@@ -498,7 +498,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 		}
 		@Override
 		public String toString(){
-			return getName() + " (id: " + getValue() + ")";
+			return getName();
 		}
 		@Override
 		public int compareTo(NameValuePair o) {
