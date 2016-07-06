@@ -37,6 +37,7 @@ import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.TreeSet;
@@ -393,6 +394,8 @@ public class BurpExtender implements IBurpExtender, ITab {
 				}
 				if(projectArr.length == 0 && !ignoreMessages){
 					warn("No projects were found.");
+				} else {
+					Arrays.sort(projectArr);
 				}
 			}
 		} catch (JSONException | IOException e){
@@ -488,7 +491,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 		return pane;
 	}
 	
-	private static class ModifiedNameValuePair extends BasicNameValuePair{
+	private static class ModifiedNameValuePair extends BasicNameValuePair implements Comparable<NameValuePair>{
 		private static final long serialVersionUID = -6671681121783779976L;
 		public ModifiedNameValuePair(String name, String value) {
 			super(name, value);
@@ -496,6 +499,10 @@ public class BurpExtender implements IBurpExtender, ITab {
 		@Override
 		public String toString(){
 			return getName() + " (id: " + getValue() + ")";
+		}
+		@Override
+		public int compareTo(NameValuePair o) {
+			return this.getName().compareTo(((NameValuePair)o).getName());
 		}
 	}
 	
