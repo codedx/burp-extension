@@ -58,7 +58,7 @@ public class ExportActionListener implements ActionListener{
 		IScanIssue[] issues = getIssues();
 		callbacks.saveExtensionSetting(BurpExtender.PROJECT_KEY, getProject());
 		if(issues != null && issues.length > 0){
-			File report = generateReport(issues);
+			final File report = generateReport(issues);
 			if(report != null && report.exists()){
 				Thread uploadThread = new Thread(){
 					public void run() {

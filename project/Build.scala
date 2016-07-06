@@ -15,7 +15,8 @@ object BuildDef extends Build {
 			publishMavenStyle := true,
 			crossPaths := false,
 			autoScalaLibrary := false,
-
+			javacOptions := List("-source", "1.7", "-target", "1.7"),
+			
 			libraryDependencies ++= Seq(
 				"org.apache.httpcomponents" % "httpclient" % "4.5.2",
 				"org.apache.httpcomponents" % "httpcore" % "4.4.4",

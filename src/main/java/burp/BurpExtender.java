@@ -129,7 +129,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 				// add listener to update projects list when Code Dx tab selected
 				Component parent = pane.getParent();
 				if(parent instanceof JTabbedPane){
-					JTabbedPane tabs = (JTabbedPane) parent;
+					final JTabbedPane tabs = (JTabbedPane) parent;
 					tabs.addChangeListener(new ChangeListener(){
 						@Override
 						public void stateChanged(ChangeEvent arg0) {
@@ -400,7 +400,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 			}
 		} catch (JSONException | IOException e){
 			if(!ignoreMessages)
-				error("An error occurred while trying to update the project list.\nVerify that the Server URL and API Key are correct\nand the API Key is active.");
+				error("An error occurred while trying to update the project list.\nVerify that the Server URL and API Key are correct and\nthe API Key is active.", e);
 		} catch (Exception e){
 			if(!ignoreMessages){
 				error("An unknown error occurred while updating the project list.", e);
@@ -465,7 +465,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 			t.printStackTrace(new PrintWriter(err));
 			try {
 				callbacks.getStderr().write(err.toString().getBytes(Charset.forName("UTF-8")));
-				message += "\nCheck the error log in the Extensions tab for more details.";
+				message += "\n\nCheck the error log in the Extensions subtab of the Extender tab.";
 			} catch (IOException e) {}
 		}
 		JOptionPane.showMessageDialog(getUiComponent(), message, "Error", JOptionPane.ERROR_MESSAGE);

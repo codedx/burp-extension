@@ -66,7 +66,7 @@ public class ContextMenuFactory implements IContextMenuFactory{
 		}
 		
 		@Override
-		public void actionPerformed(ActionEvent e) {					
+		public void actionPerformed(final ActionEvent e) {					
 			if(!"".equals(burpExtender.getApiKey()) && !"".equals(burpExtender.getServerUrl())){
 				project = null;
 				Thread t = new Thread(){
@@ -83,7 +83,7 @@ public class ContextMenuFactory implements IContextMenuFactory{
 			}
 		}
 		
-		private void openDialog(ActionEvent e){
+		private void openDialog(final ActionEvent e){
 			SwingUtilities.invokeLater(new Runnable(){
 				public void run() {
 					NameValuePair[] projects = burpExtender.getProjects();
