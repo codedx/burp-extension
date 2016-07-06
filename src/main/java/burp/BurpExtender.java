@@ -400,7 +400,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 			}
 		} catch (JSONException | IOException e){
 			if(!ignoreMessages)
-				error("An error occurred while trying to update the project list.\nCheck that the Server URL and API-Key are correct.");
+				error("An error occurred while trying to update the project list.\nVerify that the Server URL and API Key are correct\nand the API Key is active.");
 		} catch (Exception e){
 			if(!ignoreMessages){
 				error("An unknown error occurred while updating the project list.", e);
