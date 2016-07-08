@@ -85,7 +85,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 	private JButton projectRefresh;
 	
 	private String[] targetArr = new String[0];
-	private NameValuePair[] projectArr = new BasicNameValuePair[0];
+	private ModifiedNameValuePair[] projectArr = new ModifiedNameValuePair[0];
 
 	private boolean updating = false;
 	private ButtonAnimationThread refreshAnimation;
@@ -368,7 +368,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 
 		CloseableHttpClient client = null;
 		BufferedReader rd = null;
-		NameValuePair[] projectArr = new BasicNameValuePair[0];
+		ModifiedNameValuePair[] projectArr = new ModifiedNameValuePair[0];
 		try{
 			client = getHttpClient(ignoreMessages);
 			if(client != null){
@@ -386,7 +386,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 				JSONObject obj = new JSONObject(result.toString());
 				JSONArray projects = obj.getJSONArray("projects");
 				
-				projectArr = new NameValuePair[projects.length()];
+				projectArr = new ModifiedNameValuePair[projects.length()];
 				for(int i = 0; i < projectArr.length; i++){
 					int id = projects.getJSONObject(i).getInt("id");
 					String name = projects.getJSONObject(i).getString("name");
@@ -396,6 +396,13 @@ public class BurpExtender implements IBurpExtender, ITab {
 					warn("No projects were found.");
 				} else {
 					Arrays.sort(projectArr);
+					//set the project ids to visible if the names are the same
+					for(int i = 0; i < projectArr.length-1; i++){
+						if(projectArr[i].getName() != null && projectArr[i].getName().equals(projectArr[i+1].getName())){
+							projectArr[i].setUseId(true);
+							projectArr[i+1].setUseId(true);
+						}
+					}
 				}
 			}
 		} catch (JSONException | IOException e){
@@ -493,16 +500,25 @@ public class BurpExtender implements IBurpExtender, ITab {
 	
 	private static class ModifiedNameValuePair extends BasicNameValuePair implements Comparable<NameValuePair>{
 		private static final long serialVersionUID = -6671681121783779976L;
+		private boolean useId = false;
 		public ModifiedNameValuePair(String name, String value) {
 			super(name, value);
 		}
+		public void setUseId(boolean useId){
+			this.useId = useId;
+		}
 		@Override
 		public String toString(){
+			if(useId)
+				return getName() + " (id: " + getValue() + ")"; 
 			return getName();
 		}
 		@Override
 		public int compareTo(NameValuePair o) {
-			return this.getName().compareTo(((NameValuePair)o).getName());
+			int val = this.getName().compareTo(((NameValuePair)o).getName());
+			if(val == 0)
+				return this.getValue().compareTo(((NameValuePair)o).getValue());
+			return val;
 		}
 	}
 	
