@@ -142,6 +142,10 @@ public class BurpExtender implements IBurpExtender, ITab {
 									}
 								};
 								updateThread.start();
+							} else if (pane != tabs.getSelectedComponent()){
+								NameValuePair project = getProject();
+								if (project != null)
+									callbacks.saveExtensionSetting(BurpExtender.PROJECT_KEY, project.getValue());
 							}
 						}
 						
@@ -198,6 +202,9 @@ public class BurpExtender implements IBurpExtender, ITab {
 			public void actionPerformed(ActionEvent e) {
 				Thread updateThread = new Thread() {
 					public void run(){
+						NameValuePair selected = getProject();
+						if(selected != null)
+							callbacks.saveExtensionSetting(BurpExtender.PROJECT_KEY, selected.getValue());
 						updateProjects();
 					}
 				};
@@ -324,7 +331,9 @@ public class BurpExtender implements IBurpExtender, ITab {
 	}
 	
 	public NameValuePair getProject(){
-		return (NameValuePair)projectBox.getSelectedItem();
+		if(projectBox != null && projectBox.getSelectedItem() instanceof NameValuePair)
+			return (NameValuePair)projectBox.getSelectedItem();
+		return null;
 	}
 	
 	public NameValuePair[] getProjects(){
@@ -449,13 +458,12 @@ public class BurpExtender implements IBurpExtender, ITab {
 	
 	public void updateProjectComboBox(){
 		if(projectBox != null){
-			Object selected = projectBox.getSelectedItem();
 			projectBox.removeAllItems();
-			for(NameValuePair p: projectArr){
+			for(NameValuePair p: projectArr)
 				projectBox.addItem(p);
-				if (selected != null && selected.equals(p))
-					projectBox.setSelectedItem(p);
-			}
+			int activeProject = getSavedProjectIndex();
+			if(activeProject != -1)
+				projectBox.setSelectedIndex(activeProject);
 		}
 	}
 	
