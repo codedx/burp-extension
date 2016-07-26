@@ -382,32 +382,19 @@ public class BurpExtender implements IBurpExtender, ITab {
 				while ((line = rd.readLine()) != null) {
 					result.append(line);
 				}
-				
-				JSONObject obj = new JSONObject(result.toString());
-				JSONArray projects = obj.getJSONArray("projects");
-				
-				projectArr = new ModifiedNameValuePair[projects.length()];
-				for(int i = 0; i < projectArr.length; i++){
-					int id = projects.getJSONObject(i).getInt("id");
-					String name = projects.getJSONObject(i).getString("name");
-					projectArr[i] = new ModifiedNameValuePair(name,Integer.toString(id));
-				}
-				if(projectArr.length == 0 && !ignoreMessages){
-					warn("No projects were found.");
-				} else {
-					Arrays.sort(projectArr);
-					//set the project ids to visible if the names are the same
-					for(int i = 0; i < projectArr.length-1; i++){
-						if(projectArr[i].getName() != null && projectArr[i].getName().equals(projectArr[i+1].getName())){
-							projectArr[i].setUseId(true);
-							projectArr[i+1].setUseId(true);
-						}
-					}
+				if(response.getStatusLine().getStatusCode() == 200){
+					projectArr = parseProjectJson(result.toString(), ignoreMessages);
+				} else if(!ignoreMessages){
+					error("An error occurred while trying to update the project list."
+							+ "\nThe server returned response code: " + response.getStatusLine() + '.');
 				}
 			}
 		} catch (JSONException | IOException e){
 			if(!ignoreMessages)
-				error("An error occurred while trying to update the project list.\nVerify that the Server URL and API Key are correct and\nthe API Key is active.", e);
+				error("An error occurred while trying to update the project list."
+						+ "\nVerify that the Server URL and API Key are correct and the"
+						+ "\nAPI Key is active. Also make sure that you are connecting"
+						+ "\nwith the correct port.", e);
 		} catch (Exception e){
 			if(!ignoreMessages){
 				error("An unknown error occurred while updating the project list.", e);
@@ -430,11 +417,40 @@ public class BurpExtender implements IBurpExtender, ITab {
 		refreshAnimation.end();
 	}
 	
+	private ModifiedNameValuePair[] parseProjectJson(String json, boolean ignoreMessages){
+		JSONObject obj = new JSONObject(json);
+		JSONArray projects = obj.getJSONArray("projects");
+		
+		ModifiedNameValuePair[] projectArr = new ModifiedNameValuePair[projects.length()];
+		for(int i = 0; i < projectArr.length; i++){
+			int id = projects.getJSONObject(i).getInt("id");
+			String name = projects.getJSONObject(i).getString("name");
+			projectArr[i] = new ModifiedNameValuePair(name,Integer.toString(id));
+		}
+		if(projectArr.length == 0 && !ignoreMessages){
+			warn("No projects were found.");
+		} else {
+			Arrays.sort(projectArr);
+			//set the project ids to visible if the names are the same
+			for(int i = 0; i < projectArr.length-1; i++){
+				if(projectArr[i].getName() != null && projectArr[i].getName().equals(projectArr[i+1].getName())){
+					projectArr[i].setUseId(true);
+					projectArr[i+1].setUseId(true);
+				}
+			}
+		}
+		return projectArr;
+	}
+	
 	public void updateProjectComboBox(){
 		if(projectBox != null){
+			Object selected = projectBox.getSelectedItem();
 			projectBox.removeAllItems();
-			for(NameValuePair p: projectArr)
+			for(NameValuePair p: projectArr){
 				projectBox.addItem(p);
+				if (selected != null && selected.equals(p))
+					projectBox.setSelectedItem(p);
+			}
 		}
 	}
 	
@@ -472,7 +488,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 			t.printStackTrace(new PrintWriter(err));
 			try {
 				callbacks.getStderr().write(err.toString().getBytes(Charset.forName("UTF-8")));
-				message += "\n\nCheck the error log in the Extensions subtab of the Extender tab.";
+				message += "\n\nCheck the error log in the Extensions subtab of the\nExtender tab for more details.";
 			} catch (IOException e) {}
 		}
 		JOptionPane.showMessageDialog(getUiComponent(), message, "Error", JOptionPane.ERROR_MESSAGE);
