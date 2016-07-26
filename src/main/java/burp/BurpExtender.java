@@ -130,7 +130,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 				Component parent = pane.getParent();
 				if(parent instanceof JTabbedPane){
 					final JTabbedPane tabs = (JTabbedPane) parent;
-					tabs.addChangeListener(new ChangeListener(){
+					final ChangeListener tabChangeListener = new ChangeListener(){
 						@Override
 						public void stateChanged(ChangeEvent arg0) {
 							if (pane == tabs.getSelectedComponent() && !updating
@@ -139,15 +139,20 @@ public class BurpExtender implements IBurpExtender, ITab {
 									public void run(){
 										updateTargets();
 										updateProjects(true);
-										int activeProject = getSavedProjectIndex();
-										if(activeProject != -1)
-											projectBox.setSelectedIndex(activeProject);
 									}
 								};
 								updateThread.start();
 							}
 						}
 						
+					};
+					tabs.addChangeListener(tabChangeListener);
+					//Remove the change listener when the extension is unloaded
+					callbacks.registerExtensionStateListener(new IExtensionStateListener() {
+						@Override
+						public void extensionUnloaded() {
+							tabs.removeChangeListener(tabChangeListener);
+						}
 					});
 				}
 			}
