@@ -396,11 +396,19 @@ public class BurpExtender implements IBurpExtender, ITab {
 				while ((line = rd.readLine()) != null) {
 					result.append(line);
 				}
-				if(response.getStatusLine().getStatusCode() == 200){
+				int code = response.getStatusLine().getStatusCode();
+				if(code == 200){
 					projectArr = parseProjectJson(result.toString(), ignoreMessages);
 				} else if(!ignoreMessages){
-					error("An error occurred while trying to update the project list."
-							+ "\nThe server returned response code: " + response.getStatusLine() + '.');
+					String msg = "An error occurred while trying to update the project list."
+							+ "\nThe server returned response code: " + response.getStatusLine() + '.';
+					if(code == 403)
+						msg += "\nVerify that the API key is correct and active.";
+					else if(code == 404)
+						msg += "\nVerify that the Server URL is correct.";
+					else if(code == 400)
+						msg += "\nVerify that the Server URL is correct and that you are connecting\nwith the correct port.";
+					error(msg);
 				}
 			}
 		} catch (JSONException | IOException e){
