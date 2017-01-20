@@ -6,6 +6,6 @@ SerialVersion: 0
 MinPlatformVersion: 0
 ProOnly: False
 Author: Ryan McCauley
-ShortDescription: Upload reports directly to CodeDx.com
+ShortDescription: Uploads scan reports directly to CodeDx.com.
 EntryPoint: target/burp-extension-assembly-1.0-SNAPSHOT.jar
 BuildCommand: sbt compile assembly
