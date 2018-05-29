@@ -5,13 +5,13 @@ package burp;
  *
  * Copyright PortSwigger Ltd. All rights reserved.
  *
- * This code may be used to extend the functionality of Burp Suite Free Edition
+ * This code may be used to extend the functionality of Burp Suite Community Edition
  * and Burp Suite Professional, provided that this usage does not violate the
  * license terms for those products.
  */
 /**
  * Extensions can implement this interface and then call
- * <code>IBurpExtenderCallbacks.registerHttpListener()</code> to register a
+ * <code>IBurpExtenderCallbacks.registerProxyListener()</code> to register a
  * Proxy listener. The listener will be notified of requests and responses being
  * processed by the Proxy tool. Extensions can perform custom analysis or
  * modification of these messages, and control in-UI message interception, by
