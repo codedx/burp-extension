@@ -174,7 +174,7 @@ public class ExportActionListener implements ActionListener{
 			}
 			issues = lst.toArray(new IScanIssue[lst.size()]);
 		}
-		
+
 		return issues;
 	}
 	
@@ -184,7 +184,7 @@ public class ExportActionListener implements ActionListener{
 	// any URLs match, they need to be filtered.
 	private boolean hasMismatchedTargets(String selected){
 		for(String target : burpExtender.getTargetUrls()){
-			if(target != null && selected != null && target.startsWith(selected)){
+			if(target != null && selected != null && target.startsWith(selected) && !target.equals(selected)){
 				return true;
 			}
 		}

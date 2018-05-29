@@ -83,7 +83,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 	private JComboBox<String> targetUrl;
 	private JComboBox<NameValuePair> projectBox;
 	private JButton projectRefresh;
-	
+
 	private String[] targetArr = new String[0];
 	private ModifiedNameValuePair[] projectArr = new ModifiedNameValuePair[0];
 
@@ -95,12 +95,11 @@ public class BurpExtender implements IBurpExtender, ITab {
 	
 	public static final String SERVER_KEY = "cdxServer";
 	public static final String API_KEY = "cdxApiKey";
-	public static final String TARGET_KEY = "cdxTarget";
 	public static final String PROJECT_KEY = "cdxProject";
 	
 	public static final String ALL_URL_STR = "All URLs";
-	
-	
+
+
 	@Override
 	public void registerExtenderCallbacks(final IBurpExtenderCallbacks callbacks) {
 		// keep a reference to our callbacks object
@@ -222,7 +221,6 @@ public class BurpExtender implements IBurpExtender, ITab {
 		Insets ins = new Insets(10, 10, 2, 10);
 		
 		JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
-		callbacks.customizeUiComponent(sep);
 		GridBagConstraints sepGBC = new GridBagConstraints();
 		sepGBC.gridwidth = 3;
 		sepGBC.gridx = 0;
@@ -234,7 +232,6 @@ public class BurpExtender implements IBurpExtender, ITab {
 		JButton exportBtn = new JButton();
 		exportBtn.setText("Send to Code Dx");
 		exportBtn.addActionListener(new ExportActionListener(this, callbacks));
-		callbacks.customizeUiComponent(exportBtn);
 		GridBagConstraints btnGBC = new GridBagConstraints();
 		btnGBC.gridx = 0;
 		btnGBC.weightx = 1.0;
@@ -252,7 +249,6 @@ public class BurpExtender implements IBurpExtender, ITab {
 		title.setForeground(new Color(229, 137, 0));
 		Font f = title.getFont();
 		title.setFont(new Font(f.getName(), Font.BOLD, f.getSize() + 2));
-		callbacks.customizeUiComponent(title);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridwidth = 0;
 		gbc.gridx = 0;
@@ -265,41 +261,37 @@ public class BurpExtender implements IBurpExtender, ITab {
 		createSettingsLabel(label, cont);
 		
 		JTextField textField = new JTextField(base, 45);
-		callbacks.customizeUiComponent(textField);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 1;
 		cont.add(textField, gbc);
 
 		return textField;
 	}
-	
+
 	private <T> JComboBox<T> createComboBox(String label, Container cont, int buttonY, JButton button){
 		createSettingsLabel(label, cont);
 		
 		JComboBox<T> box = new JComboBox<T>();
 		box.setMaximumRowCount(16);
-		callbacks.customizeUiComponent(box);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridx = 1;
 		gbc.fill = GridBagConstraints.HORIZONTAL;
 		cont.add(box, gbc);
-		
+
 		button.setIcon(refreshSpinner[0]);
 		button.setPreferredSize(new Dimension(refreshSpinner[0].getIconHeight()+4,refreshSpinner[0].getIconHeight()+4));
-		callbacks.customizeUiComponent(button);
 		gbc = new GridBagConstraints();
 		gbc.gridx = 2;
 		gbc.gridy = buttonY;
 		gbc.anchor = GridBagConstraints.WEST;
 		cont.add(button, gbc);
-		
+
 		return box;
 	}
 	
 	private void createSettingsLabel(String label, Container cont){
 		JLabel labelField = new JLabel(label);
 		labelField.setHorizontalAlignment(SwingConstants.LEFT);
-		callbacks.customizeUiComponent(labelField);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridwidth = 1;
 		gbc.gridx = 0;
@@ -352,12 +344,21 @@ public class BurpExtender implements IBurpExtender, ITab {
 		return -1;
 	}
 	
+	public static String httpServiceToString(IHttpService s) {
+		int port = s.getPort();
+		String protocol = s.getProtocol();
+		// for port 443/https or 80/http, exclude the port from the url.
+		String opt_port = (port == 443 && protocol.toLowerCase().equals("https") ||
+							port == 80 && protocol.toLowerCase().equals("http"))
+							? "" : ":" + Integer.toString(port);
+		return protocol + "://" + s.getHost() + opt_port;
+	}
+	
 	public void updateTargets(){
 		if(targetUrl != null){
 			Set<String> urlSet = new TreeSet<String>(new UrlComparator());
 			for(IHttpRequestResponse res : callbacks.getSiteMap(null)){
-				String site = res.getHttpService().toString();
-				urlSet.add(site);
+				urlSet.add(httpServiceToString(res.getHttpService()));
 			}
 			
 			targetUrl.removeAllItems();
@@ -365,7 +366,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 			targetArr = urlSet.toArray(new String[urlSet.size()]);
 			for(String url: targetArr)
 				targetUrl.addItem(url);
-			
+
 		}
 	}
 	
