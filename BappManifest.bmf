@@ -4,7 +4,7 @@ Name: Code Dx
 ScreenVersion: 1.0.3
 SerialVersion: 1
 MinPlatformVersion: 0
-ProOnly: False
+ProOnly: True
 Author: Code Dx, Inc.
 ShortDescription: Uploads scan reports directly to CodeDx, a software vulnerability correlation and management system.
 EntryPoint: target/burp-extension-assembly-1.0.3.jar
