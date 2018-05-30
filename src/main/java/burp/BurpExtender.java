@@ -284,7 +284,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 		targetModel = new DefaultListModel<String>();
 		JList<String> list = new JList<String>(targetModel);
 		list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		list.setVisibleRowCount(16);
+		list.setVisibleRowCount(8);
 
 		targetSP = new JScrollPane(list);
 		GridBagConstraints gbc = new GridBagConstraints();
