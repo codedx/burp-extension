@@ -37,22 +37,27 @@ import java.io.StringWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import javax.swing.DefaultListModel;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
@@ -80,9 +85,13 @@ public class BurpExtender implements IBurpExtender, ITab {
 
 	private JTextField serverUrl;
 	private JTextField apiKey;
-	private JComboBox<String> targetUrl;
+	private JList<String> targetUrl;
 	private JComboBox<NameValuePair> projectBox;
 	private JButton projectRefresh;
+	private JButton exportBtn;
+	
+	private DefaultListModel<String> targetModel;
+	private JScrollPane targetSP;
 
 	private String[] targetArr = new String[0];
 	private ModifiedNameValuePair[] projectArr = new ModifiedNameValuePair[0];
@@ -96,9 +105,6 @@ public class BurpExtender implements IBurpExtender, ITab {
 	public static final String SERVER_KEY = "cdxServer";
 	public static final String API_KEY = "cdxApiKey";
 	public static final String PROJECT_KEY = "cdxProject";
-	
-	public static final String ALL_URL_STR = "All URLs";
-
 
 	@Override
 	public void registerExtenderCallbacks(final IBurpExtenderCallbacks callbacks) {
@@ -121,7 +127,11 @@ public class BurpExtender implements IBurpExtender, ITab {
 				refreshAnimation = new ButtonAnimationThread(projectRefresh, refreshSpinner);
 				
 				callbacks.customizeUiComponent(pane);
-
+				
+				targetUrl.setFocusable(true);
+				projectBox.setFocusable(true);
+				exportBtn.setFocusable(true);
+				
 				// add the custom tab to Burp's UI
 				callbacks.addSuiteTab(BurpExtender.this);
 				
@@ -193,7 +203,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 				updateTargets();
 			}
 		});
-		targetUrl = createComboBox("Target URL: ",settings, 3, targetRefresh);
+		targetUrl = createTargetList(settings, 3, targetRefresh);
 
 		projectRefresh = new JButton();
 		projectRefresh.addActionListener(new ActionListener(){
@@ -229,7 +239,7 @@ public class BurpExtender implements IBurpExtender, ITab {
 		main.add(sep, sepGBC);
 		
 		// Create Export Button
-		JButton exportBtn = new JButton();
+		exportBtn = new JButton();
 		exportBtn.setText("Send to Code Dx");
 		exportBtn.addActionListener(new ExportActionListener(this, callbacks));
 		GridBagConstraints btnGBC = new GridBagConstraints();
@@ -268,6 +278,25 @@ public class BurpExtender implements IBurpExtender, ITab {
 		return textField;
 	}
 
+	private JList<String> createTargetList(Container cont, int buttonY, JButton button) {
+		createSettingsLabel("Target URL: ", cont, GridBagConstraints.NORTHWEST);
+
+		targetModel = new DefaultListModel<String>();
+		JList<String> list = new JList<String>(targetModel);
+		list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		list.setVisibleRowCount(16);
+
+		targetSP = new JScrollPane(list);
+		GridBagConstraints gbc = new GridBagConstraints();
+		gbc.gridx = 1;
+		gbc.fill = GridBagConstraints.HORIZONTAL;
+		cont.add(targetSP, gbc);
+
+		createRefreshButton(cont, buttonY, button, GridBagConstraints.NORTHWEST);
+
+		return list;
+	}
+
 	private <T> JComboBox<T> createComboBox(String label, Container cont, int buttonY, JButton button){
 		createSettingsLabel(label, cont);
 		
@@ -278,25 +307,37 @@ public class BurpExtender implements IBurpExtender, ITab {
 		gbc.fill = GridBagConstraints.HORIZONTAL;
 		cont.add(box, gbc);
 
-		button.setIcon(refreshSpinner[0]);
-		button.setPreferredSize(new Dimension(refreshSpinner[0].getIconHeight()+4,refreshSpinner[0].getIconHeight()+4));
-		gbc = new GridBagConstraints();
-		gbc.gridx = 2;
-		gbc.gridy = buttonY;
-		gbc.anchor = GridBagConstraints.WEST;
-		cont.add(button, gbc);
+		createRefreshButton(cont, buttonY, button);
 
 		return box;
 	}
+
+	private void createRefreshButton(Container cont, int buttonY, JButton button) {
+		createRefreshButton(cont, buttonY, button, GridBagConstraints.WEST);
+	}
+
+	private void createRefreshButton(Container cont, int buttonY, JButton button, int anchor) {
+		button.setIcon(refreshSpinner[0]);
+		button.setPreferredSize(new Dimension(refreshSpinner[0].getIconHeight()+4,refreshSpinner[0].getIconHeight()+4));
+		GridBagConstraints gbc = new GridBagConstraints();
+		gbc.gridx = 2;
+		gbc.gridy = buttonY;
+		gbc.anchor = anchor;
+		cont.add(button, gbc);
+	}
 	
 	private void createSettingsLabel(String label, Container cont){
+		createSettingsLabel(label, cont, GridBagConstraints.WEST);
+	}
+
+	private void createSettingsLabel(String label, Container cont, int anchor){
 		JLabel labelField = new JLabel(label);
 		labelField.setHorizontalAlignment(SwingConstants.LEFT);
 		GridBagConstraints gbc = new GridBagConstraints();
 		gbc.gridwidth = 1;
 		gbc.gridx = 0;
 		gbc.insets = new Insets(0, 12, 0, 0);
-		gbc.anchor = GridBagConstraints.WEST;
+		gbc.anchor = anchor;
 		cont.add(labelField, gbc);
 	}
 
@@ -311,11 +352,14 @@ public class BurpExtender implements IBurpExtender, ITab {
 		return apiKey.getText();
 	}
 
-	public String getTargetUrl() {
-		String url = targetUrl.getSelectedItem().toString();
-		if(ALL_URL_STR.equals(url))
-			return null;
-		return url;
+	public List<String> getSelectedTargetUrls() {
+		List<String> targets = targetUrl.getSelectedValuesList();
+		if(targets.size() == targetArr.length) {
+			// When getting issues, null means get all
+			targets = new ArrayList<String>();
+			targets.add(null);
+		}
+		return targets;
 	}
 	
 	public String[] getTargetUrls(){
@@ -361,12 +405,27 @@ public class BurpExtender implements IBurpExtender, ITab {
 				urlSet.add(httpServiceToString(res.getHttpService()));
 			}
 			
-			targetUrl.removeAllItems();
-			targetUrl.addItem(ALL_URL_STR);
-			targetArr = urlSet.toArray(new String[urlSet.size()]);
+			List<String> selected = targetUrl.getSelectedValuesList();
+			int pos = targetSP.getVerticalScrollBar().getValue();
+			
+			targetModel.clear();
+			targetArr = urlSet.toArray(new String[0]);
 			for(String url: targetArr)
-				targetUrl.addItem(url);
+				targetModel.addElement(url);
 
+			List<String> targets = new ArrayList<String>(urlSet);
+			List<Integer> indexList = new ArrayList<Integer>();
+			for(String target: selected) {
+				int i = targets.indexOf(target);
+				if(i >= 0)
+					indexList.add(i);
+			}
+			int[] indices = new int[indexList.size()];
+			for(int i = 0; i < indices.length; i++)
+				indices[i] = indexList.get(i);
+
+			targetUrl.setSelectedIndices(indices);
+			targetSP.getVerticalScrollBar().setValue(pos);
 		}
 	}
 	
