@@ -22,7 +22,8 @@ object BuildDef extends Build {
 				"org.apache.httpcomponents" % "httpcore" % "4.4.4",
 				"org.apache.httpcomponents" % "httpmime" % "4.5.2",
 				"commons-logging" % "commons-logging" % "1.2",
-				"org.json" % "json" % "20160212"
+				"org.json" % "json" % "20160212",
+				"net.portswigger.burp.extender" % "burp-extender-api" % "1.7.22"
 			),
 
 			(commands in Global) <++= Def.setting {
