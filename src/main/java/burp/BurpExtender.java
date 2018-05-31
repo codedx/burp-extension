@@ -142,12 +142,13 @@ public class BurpExtender implements IBurpExtender, ITab {
 					final ChangeListener tabChangeListener = new ChangeListener(){
 						@Override
 						public void stateChanged(ChangeEvent arg0) {
-							if (pane == tabs.getSelectedComponent() && !updating
-									&& !"".equals(serverUrl.getText()) && !"".equals(apiKey.getText())) {
+							if (pane == tabs.getSelectedComponent()) {
+								final boolean updateProj = !updating
+										&& !"".equals(serverUrl.getText()) && !"".equals(apiKey.getText());
 								Thread updateThread = new Thread() {
 									public void run(){
 										updateTargets();
-										updateProjects(true);
+										if(updateProj) updateProjects(true);
 									}
 								};
 								updateThread.start();
