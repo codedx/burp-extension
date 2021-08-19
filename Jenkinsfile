@@ -32,8 +32,10 @@ pipeline {
 			post {
 				success {
 					if (!params.RELEASE_VERSION.isEmpty()) {
-						currentBuild.displayName = "Release ${params.RELEASE_VERSION}"
-						slack.info "Burp Extension release build ${params.RELEASE_VERSION} complete"
+						script {
+							currentBuild.displayName = "Release ${params.RELEASE_VERSION}"
+							slack.info "Burp Extension release build ${params.RELEASE_VERSION} complete"
+						}
 					}
 
 					archiveArtifacts artifacts: 'target/burp-extension-assembly-*.jar', fingerprint: true, onlyIfSuccessful: true
@@ -46,7 +48,9 @@ pipeline {
 
 	post {
 		failure {
-			slack.error 'Burp Extension build FAILED'
+			script {
+				slack.error 'Burp Extension build FAILED'
+			}
 		}
 	}
 }
