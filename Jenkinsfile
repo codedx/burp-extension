@@ -31,8 +31,8 @@ pipeline {
 
 			post {
 				success {
-					if (!params.RELEASE_VERSION.isEmpty()) {
-						script {
+					script {
+						if (!params.RELEASE_VERSION.isEmpty()) {
 							currentBuild.displayName = "Release ${params.RELEASE_VERSION}"
 							slack.info "Burp Extension release build ${params.RELEASE_VERSION} complete"
 						}
