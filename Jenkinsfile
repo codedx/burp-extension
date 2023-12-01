@@ -34,18 +34,9 @@ pipeline {
 					script {
 						if (!params.RELEASE_VERSION.isEmpty()) {
 							currentBuild.displayName = "Release ${params.RELEASE_VERSION}"
-							slack.info "Burp Extension release build ${params.RELEASE_VERSION} complete"
 						}
 					}
 				}
-			}
-		}
-	}
-
-	post {
-		failure {
-			script {
-				slack.error 'Burp Extension build FAILED'
 			}
 		}
 	}
